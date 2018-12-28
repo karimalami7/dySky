@@ -22,6 +22,7 @@ using namespace std;
 
 typedef  int* Point; 
 typedef  std::pair<int,int> Order;
-typedef int  Space;
+typedef int Space;
+typedef int id;
 
 void listeAttributsPresents(Space subspace, Space d, vector<Space> &result);

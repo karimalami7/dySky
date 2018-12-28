@@ -316,14 +316,14 @@ void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& S
 }
 
 
-void InsertSkyline(vector<Point>& SkylineList, SNode& SkyNode)
+void InsertSkyline(vector<int>& SkylineList, SNode& SkyNode)
 {
 	int nNumChild = (int)SkyNode.nNumChild;
 	if (nNumChild > 0)
 	{
 		int nNumPnt = (int)SkyNode.NodePointList.size();
 		for (int nPnt = 0; nPnt < nNumPnt; nPnt++)
-			SkylineList.push_back(SkyNode.NodePointList[nPnt]);
+			SkylineList.push_back(SkyNode.NodePointList[nPnt][0]);
 
 		for (int nChild = 0; nChild < nNumChild; nChild++)
 			InsertSkyline(SkylineList, SkyNode.ChildNode[nChild]);
@@ -332,7 +332,7 @@ void InsertSkyline(vector<Point>& SkylineList, SNode& SkyNode)
 	{
 		int nNumPnt = (int)SkyNode.NodePointList.size();
 		for (int nPnt = 0; nPnt < nNumPnt; nPnt++)
-			SkylineList.push_back(SkyNode.NodePointList[nPnt]);
+			SkylineList.push_back(SkyNode.NodePointList[nPnt][0]);
 	}
 }
 
@@ -362,7 +362,7 @@ void ClearSkyTree(SNode& SkyTree)
 }
 
 
-void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<Point>& skyline)
+void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline)
 {
 	SNode SkyTree;
 	SkyTree.nLatticeID = 0;
@@ -374,8 +374,8 @@ void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<Poin
 	ClearSkyTree(SkyTree);
 }
 
-vector<Point> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList){
-    vector<Point> skyline;
+vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList){
+    vector<int> skyline;
     ExecuteBSkyTree(AttList, PointList, skyline);
     return skyline;
 }

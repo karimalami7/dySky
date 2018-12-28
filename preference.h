@@ -11,8 +11,9 @@ void Preference::add_vertices(int max_id){
 }
 
 void Preference::print_vertices(){
+	cout <<"vertices: ";
 	for (int i=0; i<this->vertices.size(); i++){
-		cout <<this->vertices[i]<<endl;
+		cout<<this->vertices[i]<<" ";
 	}
 	cout << endl;
 }

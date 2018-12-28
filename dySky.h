@@ -21,7 +21,7 @@ class dySky {
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
 	map<std::set<Order>, vector<int> > view;
-	unordered_set<int> dominated_objects;
+	vector<id> dominated_objects;
 
 	public:
 
@@ -48,9 +48,9 @@ void dySky::compute_skyline(Config* cfg){
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    std::vector<Point> Skyline;
+    std::vector<id> Skyline;
     Skyline=subspaceSkylineSize_TREE(full_Space, this->to_dataset);
-    cout << "Skyline size: "<<Skyline.size()<<endl;
+    cout << "minimum Skyline size: "<<Skyline.size()<<endl;
 }
 
 void dySky::print_dataset (Config* cfg){
@@ -68,9 +68,45 @@ void dySky::print_dataset (Config* cfg){
 }
 
 int dySky::compute_dominated_objects(Config* cfg){
-	for(int i=0; i<cfg->dataset_size;i++){
-		for(int j=0; j<cfg->dataset_size; j++){
-			cout << i << " " << j << endl;
-		}		
+
+	// cluster dataset depending on the value in the po dimenion
+	vector<Point> datasets[cfg->dyDim_val];
+	for (int i=0; i<cfg->dataset_size; i++){
+		datasets[po_dataset[i]].push_back(to_dataset[i]);
 	}
+
+	// compute skyline for every subdatasets
+	int All = (1<<cfg->statDim_size)-1;
+	vector<Space> full_Space;
+	listeAttributsPresents(All, cfg->statDim_size, full_Space);
+    vector<id> Skyline[cfg->dyDim_val];
+    for (int i=0; i<cfg->dyDim_val; i++){
+    	Skyline[i]=subspaceSkylineSize_TREE(full_Space, datasets[i]);
+    	this->dominated_objects.insert(this->dominated_objects.end(),
+    		Skyline[i].begin(), Skyline[i].end());// it is actually skyline objects here
+    }
+    vector<id> all_ids;
+    for (int i=0; i<cfg->dataset_size; i++){
+    	all_ids.push_back(i);
+    }
+    //all_ids minus dominated_objects
+    std::vector<int> minus_vector(cfg->dataset_size);  //filled with zeros
+  	std::vector<int>::iterator it;
+      
+  	std::sort (this->dominated_objects.begin(),this->dominated_objects.end());   
+  	it=std::set_difference (all_ids.begin(),all_ids.end(), 
+  		this->dominated_objects.begin(),this->dominated_objects.end(), minus_vector.begin()); // diff between all ids and dom objects
+  	minus_vector.resize(it-minus_vector.begin());  
+    this->dominated_objects.swap(minus_vector);
+    cout << "There is "<< dominated_objects.size()<<" dominated objects"<<endl;
+
+ 	
+
+	int count_test=0;
+	for (int i=0; i<cfg->dyDim_val; i++){
+		cout << "size of Skyline of cluster " << i << ": "<<Skyline[i].size()<<endl;
+		count_test+=Skyline[i].size();
+	}
+	cout <<endl;
+	cout <<"sum (maximum Skyline size): "<<count_test<<endl;
 }

@@ -75,7 +75,7 @@ void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList,
 void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& SkyTree);
 
 
-void InsertSkyline(vector<Point>& SkylineList, SNode& SkyNode);
+void InsertSkyline(vector<int>& SkylineList, SNode& SkyNode);
 
 
 void PushStack(stack<SNode>& Stack, SNode& SkyNode);
@@ -84,8 +84,8 @@ void PushStack(stack<SNode>& Stack, SNode& SkyNode);
 void ClearSkyTree(SNode& SkyTree);
 
 
-void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<Point>& skyline);
+void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline);
 
-vector<Point> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList);
+vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList);
 
 #endif // BSKYTREE_H_INCLUDED
