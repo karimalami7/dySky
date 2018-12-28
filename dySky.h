@@ -20,17 +20,20 @@ class dySky {
 		
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
-	map<std::set<Order>, vector<int> > view;
-	vector<id> dominated_objects;
-
+	vector<id> always_sky;
+	vector<id> never_sky;
+	vector<id> candidates;
+ 
 	public:
 
 	void generate_to_data(Config* cfg); 
 	void generate_po_data(Config* cfg);
 	void compute_skyline(Config* cfg);
-	void compute_view(set<Order>);
+	int compute_candidates(Config* cfg);
+	void compute_views(Config* cfg);
+	void compute_view(Config* cfg, Order o);
 	void print_dataset (Config* cfg);
-	int compute_dominated_objects(Config* cfg);
+	
 };
 
 void dySky::generate_to_data(Config* cfg){
@@ -48,9 +51,8 @@ void dySky::compute_skyline(Config* cfg){
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    std::vector<id> Skyline;
-    Skyline=subspaceSkylineSize_TREE(full_Space, this->to_dataset);
-    cout << "minimum Skyline size: "<<Skyline.size()<<endl;
+    this->always_sky=subspaceSkylineSize_TREE(full_Space, this->to_dataset);
+    cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
 }
 
 void dySky::print_dataset (Config* cfg){
@@ -67,46 +69,69 @@ void dySky::print_dataset (Config* cfg){
     }
 }
 
-int dySky::compute_dominated_objects(Config* cfg){
+int dySky::compute_candidates(Config* cfg){
 
 	// cluster dataset depending on the value in the po dimenion
-	vector<Point> datasets[cfg->dyDim_val];
+	vector<vector<Point> > datasets(cfg->dyDim_val);
 	for (int i=0; i<cfg->dataset_size; i++){
 		datasets[po_dataset[i]].push_back(to_dataset[i]);
 	}
 
-	// compute skyline for every subdatasets
+	// compute skyline for every subdatasets -> always skyline + candidates
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    vector<id> Skyline[cfg->dyDim_val];
+	vector<id> sky_union_candidates;
+    vector<vector<id> >Skyline(cfg->dyDim_val);
     for (int i=0; i<cfg->dyDim_val; i++){
     	Skyline[i]=subspaceSkylineSize_TREE(full_Space, datasets[i]);
-    	this->dominated_objects.insert(this->dominated_objects.end(),
-    		Skyline[i].begin(), Skyline[i].end());// it is actually skyline objects here
+    	sky_union_candidates.insert(sky_union_candidates.end(),
+    		Skyline[i].begin(), Skyline[i].end());
     }
+    
+    // compute never_sky and candidates
     vector<id> all_ids;
     for (int i=0; i<cfg->dataset_size; i++){
     	all_ids.push_back(i);
     }
-    //all_ids minus dominated_objects
-    std::vector<int> minus_vector(cfg->dataset_size);  //filled with zeros
-  	std::vector<int>::iterator it;
-      
-  	std::sort (this->dominated_objects.begin(),this->dominated_objects.end());   
-  	it=std::set_difference (all_ids.begin(),all_ids.end(), 
-  		this->dominated_objects.begin(),this->dominated_objects.end(), minus_vector.begin()); // diff between all ids and dom objects
-  	minus_vector.resize(it-minus_vector.begin());  
-    this->dominated_objects.swap(minus_vector);
-    cout << "There is "<< dominated_objects.size()<<" dominated objects"<<endl;
+    // never_sky = all_ids minus never_sky
+    std::vector<int> never_sky(cfg->dataset_size);  //filled with zeros
+  	std::vector<int>::iterator it_never;
+  	std::sort (sky_union_candidates.begin(),sky_union_candidates.end());   
+  	it_never=std::set_difference (all_ids.begin(),all_ids.end(), 
+  		sky_union_candidates.begin(),sky_union_candidates.end(), never_sky.begin()); // diff between all ids and dom objects
+  	never_sky.resize(it_never-never_sky.begin());  
+    this->never_sky.swap(never_sky);
+    cout <<"Never Skyline size: "<< this->never_sky.size()<<endl;
 
- 	
+    //  candidates = sky_union_candidates minus sky
 
-	int count_test=0;
-	for (int i=0; i<cfg->dyDim_val; i++){
-		cout << "size of Skyline of cluster " << i << ": "<<Skyline[i].size()<<endl;
-		count_test+=Skyline[i].size();
-	}
-	cout <<endl;
-	cout <<"sum (maximum Skyline size): "<<count_test<<endl;
+    std::vector<int> candidates(cfg->dataset_size);  //filled with zeros
+  	std::vector<int>::iterator it_candidates;
+  	std::sort (this->always_sky.begin(),this->always_sky.end()); 
+  	it_candidates=std::set_difference (sky_union_candidates.begin(),sky_union_candidates.end(), 
+  		this->always_sky.begin(),this->always_sky.end(), candidates.begin()); // diff between all ids and dom objects
+  	candidates.resize(it_candidates-candidates.begin());  
+    this->candidates.swap(candidates);
+    cout << "Candidate set size: "<<this->candidates.size()<<endl;
+
+ 	cout << "Totally, there is "<<this->candidates.size() + this->never_sky.size() + this->always_sky.size()<<" objects"<<endl; 
+
 }
+
+void compute_view(Config* cfg, Order o){
+	
+}
+
+void compute_views(Config* cfg){
+	for (int i=0; i<cfg->dyDim_val;i++){
+		for (int j = 0; j <cfg->dyDim_val; ++i)
+		{
+			if (i!=j){
+				compute_view(cfg,Order(i,j));
+				compute_view(cfg,Order(j,i));
+			}
+		}
+	}
+}
+

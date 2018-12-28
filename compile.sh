@@ -1,3 +1,3 @@
-#/bin/bash
+make clean 
 
-g++ main.cpp generator/*.cpp BSkyTree/bskytree.cpp common.cpp -o dySky
+make
