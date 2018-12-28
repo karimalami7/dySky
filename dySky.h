@@ -20,7 +20,8 @@ class dySky {
 		
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
-	map<std::set<Order>, vector<int>> view;
+	map<std::set<Order>, vector<int> > view;
+	unordered_set<int> dominated_objects;
 
 	public:
 
@@ -29,6 +30,7 @@ class dySky {
 	void compute_skyline(Config* cfg);
 	void compute_view(set<Order>);
 	void print_dataset (Config* cfg);
+	int compute_dominated_objects(Config* cfg);
 };
 
 void dySky::generate_to_data(Config* cfg){
@@ -63,4 +65,12 @@ void dySky::print_dataset (Config* cfg){
         } 
         monFlux1 << this->to_dataset[i][cfg->statDim_size]<< endl;
     }
+}
+
+int dySky::compute_dominated_objects(Config* cfg){
+	for(int i=0; i<cfg->dataset_size;i++){
+		for(int j=0; j<cfg->dataset_size; j++){
+			cout << i << " " << j << endl;
+		}		
+	}
 }

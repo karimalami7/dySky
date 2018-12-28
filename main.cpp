@@ -96,4 +96,5 @@ int main(int argc, char** argv) {
 	// compute skyline by BSkyTree
 	dysky.compute_skyline(cfg);
 
+	dysky.compute_dominated_objects(cfg);
 }

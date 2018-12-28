@@ -10,7 +10,7 @@ class Graph
 {
 protected:
 	vector<T> vertices;
-	unordered_map<T,vector<T>> out_edges;
+	unordered_map<T,vector<T> > out_edges;
 
 public:
 	void add_vertices(vector<T> vertices);
@@ -31,6 +31,6 @@ void Graph<T>::add_outedges(T vertex_source, vector<T> vertices_destination){
 		}
 	}
 	else{
-		this->out_edges=pair<T,vector<T>>(vertex_source,vertices_destination);
+		this->out_edges=pair<T,vector<T> >(vertex_source,vertices_destination);
 	}
 }
