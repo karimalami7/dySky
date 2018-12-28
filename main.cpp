@@ -1,23 +1,16 @@
 /*
- * main.cu
+ * main.cpp
  *
- *  Created on: May 23, 2016
- *      Author: kenneth
+ *  Created on: December 19, 2018
+ *      Author: karim
  */
 
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <algorithm>
-#include <iomanip>
-#include <iostream>
-
-#include <unistd.h>
-#include <cstdlib>
-
-
+#include "common.h"
 #include "config.h"
+#include "dySky.h"
+#include "graph.h"
+#include "preference.h"
 
 using namespace std;
 
@@ -46,8 +39,8 @@ int main(int argc, char** argv) {
 	cfg->dataset_size=100000;
 	cfg->statDim_size=8;
 	cfg->statDim_val=100;
-	cfg->dyDim_size=2;
-	cfg->dyDim_val=10;
+	cfg->dyDim_size=1;
+	cfg->dyDim_val=8;
 	cfg->num_threads=8;
 	cfg->verbose=false;
 
@@ -88,5 +81,19 @@ int main(int argc, char** argv) {
 	// }
 
 	cout << "all ok"<<endl;
-}
 
+	dySky dysky;
+	// generate total order data
+	dysky.generate_to_data(cfg);
+	// generate partial order data
+	dysky.generate_po_data(cfg);
+	// input preference
+	Preference p;
+	p.add_vertices(cfg->dyDim_val);
+	p.print_vertices();
+	// transform partial order dimension to k total order dimension
+	//dysky.transform_po-to()
+	// compute skyline by BSkyTree
+	dysky.compute_skyline(cfg);
+
+}

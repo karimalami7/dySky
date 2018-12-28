@@ -1,8 +1,8 @@
 /*
  * config.h
  *
- *  Created on: May 24, 2016
- *      Author: kenneth
+ *  Created on: December 19, 2018
+ *      Author: karim
  */
 
 #ifndef CONFIG_H_
