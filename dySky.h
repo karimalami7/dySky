@@ -23,16 +23,17 @@ class dySky {
 	vector<id> always_sky;
 	vector<id> never_sky;
 	vector<id> candidates;
-	unordered_map<Order,vector<id> > skyline_view;
+	unordered_map<Order,vector<id>, pairhash> skyline_view;
  
 	public:
 
 	void generate_to_data(Config* cfg); 
 	void generate_po_data(Config* cfg);
-	void compute_skyline(Config* cfg);
+	void compute_always_skyline(Config* cfg);
 	int compute_candidates(Config* cfg);
 	void compute_views(Config* cfg);
 	void compute_view(Config* cfg, Order o);
+	void compute_skyline(Config* cfg, vector<Order>);
 	void print_dataset (Config* cfg);
 	
 };
@@ -49,7 +50,7 @@ void dySky::generate_po_data(Config* cfg){
 	}
 }
 
-void dySky::compute_skyline(Config* cfg){
+void dySky::compute_always_skyline(Config* cfg){
 	
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
@@ -132,6 +133,11 @@ void dySky::compute_views(Config* cfg){
 			}
 		}
 	}
+	int views_total_storage=0;
+	for (auto it=this->skyline_view.begin();it!=this->skyline_view.end();it++){
+		views_total_storage+=(it->second).size();
+	}
+	cout << "Views total storage: " << views_total_storage <<endl;
 }
 
 void dySky::compute_view(Config* cfg, Order o){
@@ -141,17 +147,17 @@ void dySky::compute_view(Config* cfg, Order o){
 	vector<Point> temp_dataset;
 	
 	for (int i=0; i<sky_union_candidates.size(); i++){
-		if (this->po_dataset[i]==o.first){
+		if (this->po_dataset[sky_union_candidates[i]]==o.first){
 			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
 			for (int j=0;j<=cfg->statDim_size;j++){
-				p[j]=to_dataset[i][j];
+				p[j]=to_dataset[sky_union_candidates[i]][j];
 			}
 			p[cfg->statDim_size+1]=0;
 			temp_dataset.push_back(p);
-		}else if (this->po_dataset[i]==o.second){
+		}else if (this->po_dataset[sky_union_candidates[i]]==o.second){
 			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
 			for (int j=0;j<=cfg->statDim_size;j++){
-				p[j]=to_dataset[i][j];
+				p[j]=to_dataset[sky_union_candidates[i]][j];
 			}
 			p[cfg->statDim_size+1]=1;
 			temp_dataset.push_back(p);
@@ -160,10 +166,17 @@ void dySky::compute_view(Config* cfg, Order o){
 
 	// compute skyline set for this view
 	
-	int All = (1<<cfg->statDim_size+)-1;
+	int All = (1<<(cfg->statDim_size+1))-1;
 	vector<Space> full_Space;
-	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    //this->skyline_view.insert(pair<Order, vector<id> >(o,subspaceSkylineSize_TREE(full_Space, this->to_dataset)));
+	listeAttributsPresents(All, cfg->statDim_size+1, full_Space);
+	vector<id> view_sky=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+	std::vector<int> view_candidates(view_sky.size());  //filled with zeros
+  	std::vector<int>::iterator it_view;
+  	std::sort (view_sky.begin(),view_sky.end());
+  	it_view=std::set_difference (view_sky.begin(),view_sky.end(), 
+  		this->always_sky.begin(),this->always_sky.end(), view_candidates.begin()); // diff between all ids and dom objects
+  	view_candidates.resize(it_view-view_candidates.begin());  
+    this->skyline_view.insert(pair<Order, vector<id> >(o,view_candidates));
 
 }
 

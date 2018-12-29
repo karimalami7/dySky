@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 	cfg->statDim_size=8;
 	cfg->statDim_val=100;
 	cfg->dyDim_size=1;
-	cfg->dyDim_val=8;
+	cfg->dyDim_val=6;
 	cfg->num_threads=8;
 	cfg->verbose=false;
 
@@ -75,28 +75,24 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	// if (cfg->dataset_size.empty() || cfg->statDim_size.empty()) {
-	// 	printUsage();
-	// 	return 1;
-	// }
-
-	cout << "all ok"<<endl;
-
 	dySky dysky;
 	// generate total order data
 	dysky.generate_to_data(cfg);
 	// generate partial order data
 	dysky.generate_po_data(cfg);
-	// input preference
-	Preference p;
-	p.add_vertices(cfg->dyDim_val);
-	p.print_vertices();
-	// transform partial order dimension to k total order dimension
-	//dysky.transform_po-to()
-	// compute skyline by BSkyTree
-	dysky.compute_skyline(cfg);
-	// compute dynamic objects 
+	// compute skyline by BSkyTree on static order dimensions (Always Sky)
+	dysky.compute_always_skyline(cfg);
+	// compute candidates 
 	dysky.compute_candidates(cfg);
 	// compute views
 	dysky.compute_views(cfg);
+
+
+
+	// input preference
+	// Preference p;
+	// p.add_vertices(cfg->dyDim_val);
+	// p.print_vertices();
+	// transform partial order dimension to k total order dimension
+	//dysky.transform_po-to()
 }
