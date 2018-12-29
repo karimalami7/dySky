@@ -97,4 +97,6 @@ int main(int argc, char** argv) {
 	dysky.compute_skyline(cfg);
 	// compute dynamic objects 
 	dysky.compute_candidates(cfg);
+	// compute views
+	dysky.compute_views(cfg);
 }

@@ -23,6 +23,7 @@ class dySky {
 	vector<id> always_sky;
 	vector<id> never_sky;
 	vector<id> candidates;
+	unordered_map<Order,vector<id> > skyline_view;
  
 	public:
 
@@ -38,6 +39,8 @@ class dySky {
 
 void dySky::generate_to_data(Config* cfg){
 	loadData("INDE","",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
+
+	
 } 
 
 void dySky::generate_po_data(Config* cfg){
@@ -119,19 +122,50 @@ int dySky::compute_candidates(Config* cfg){
 
 }
 
-void compute_view(Config* cfg, Order o){
-	
-}
-
-void compute_views(Config* cfg){
+void dySky::compute_views(Config* cfg){
 	for (int i=0; i<cfg->dyDim_val;i++){
-		for (int j = 0; j <cfg->dyDim_val; ++i)
+		for (int j = 0; j <cfg->dyDim_val; ++j)
 		{
 			if (i!=j){
+				//cout << "order " << i <<" "<< j<< endl; 
 				compute_view(cfg,Order(i,j));
-				compute_view(cfg,Order(j,i));
 			}
 		}
 	}
 }
+
+void dySky::compute_view(Config* cfg, Order o){
+	vector<id> sky_union_candidates;
+	sky_union_candidates.insert(sky_union_candidates.end(), this->always_sky.begin(), this->always_sky.end());
+	sky_union_candidates.insert(sky_union_candidates.end(), this->candidates.begin(), this->candidates.end());
+	vector<Point> temp_dataset;
+	
+	for (int i=0; i<sky_union_candidates.size(); i++){
+		if (this->po_dataset[i]==o.first){
+			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
+			for (int j=0;j<=cfg->statDim_size;j++){
+				p[j]=to_dataset[i][j];
+			}
+			p[cfg->statDim_size+1]=0;
+			temp_dataset.push_back(p);
+		}else if (this->po_dataset[i]==o.second){
+			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
+			for (int j=0;j<=cfg->statDim_size;j++){
+				p[j]=to_dataset[i][j];
+			}
+			p[cfg->statDim_size+1]=1;
+			temp_dataset.push_back(p);
+		}
+	}
+
+	// compute skyline set for this view
+	
+	int All = (1<<cfg->statDim_size+)-1;
+	vector<Space> full_Space;
+	listeAttributsPresents(All, cfg->statDim_size, full_Space);
+    //this->skyline_view.insert(pair<Order, vector<id> >(o,subspaceSkylineSize_TREE(full_Space, this->to_dataset)));
+
+}
+
+
 
