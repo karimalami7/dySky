@@ -36,11 +36,11 @@ void printUsage() {
 int main(int argc, char** argv) {
 
 	Config *cfg = new Config;
-	cfg->dataset_size=100000;
-	cfg->statDim_size=8;
-	cfg->statDim_val=100;
+	cfg->dataset_size=1000;
+	cfg->statDim_size=4;
+	cfg->statDim_val=20;
 	cfg->dyDim_size=1;
-	cfg->dyDim_val=6;
+	cfg->dyDim_val=4;
 	cfg->num_threads=8;
 	cfg->verbose=false;
 
@@ -86,6 +86,19 @@ int main(int argc, char** argv) {
 	dysky.compute_candidates(cfg);
 	// compute views
 	dysky.compute_views(cfg);
+
+	dysky.print_dataset(cfg);
+
+	vector<Order> preference;
+	preference.push_back(Order(0,1));
+	preference.push_back(Order(0,2));
+	preference.push_back(Order(0,3));
+	preference.push_back(Order(1,2));
+	preference.push_back(Order(1,3));
+	preference.push_back(Order(2,3));
+
+	cout << "size result: "<< dysky.compute_skyline(cfg, preference).size()<<endl;
+
 
 
 

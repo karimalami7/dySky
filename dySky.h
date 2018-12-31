@@ -33,7 +33,7 @@ class dySky {
 	int compute_candidates(Config* cfg);
 	void compute_views(Config* cfg);
 	void compute_view(Config* cfg, Order o);
-	void compute_skyline(Config* cfg, vector<Order>);
+	vector<id> compute_skyline(Config* cfg, vector<Order> preference);
 	void print_dataset (Config* cfg);
 	
 };
@@ -55,8 +55,28 @@ void dySky::compute_always_skyline(Config* cfg){
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    this->always_sky=subspaceSkylineSize_TREE(full_Space, this->to_dataset);
+    this->always_sky=subspaceSkylineSize_TREE(full_Space, to_dataset);
     cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
+    // cerr << "::" <<endl;
+    // for (int k=0; k< this->always_sky.size(); k++) cerr << this->always_sky[k]<<endl; 
+	// int All = (1<<cfg->statDim_size+1)-1;
+	// vector<Space> full_Space;
+	// listeAttributsPresents(All, cfg->statDim_size+1, full_Space);
+	// vector<Point> temp_dataset;
+	// for (int i=0; i< cfg->dataset_size; i++){
+	// 	Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
+	// 		for (int j=0;j<=cfg->statDim_size;j++){
+	// 			p[j]=to_dataset[i][j];
+	// 		}
+	// 		p[cfg->statDim_size+1]=po_dataset[i];
+	// 		temp_dataset.push_back(p);
+	// }
+	// // gooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooood      results
+ //    this->always_sky=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+ //    cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
+ //    cerr << "::" <<endl;
+ //    for (int k=0; k< this->always_sky.size(); k++) cerr << this->always_sky[k]<<endl; 
+
 }
 
 void dySky::print_dataset (Config* cfg){
@@ -66,10 +86,10 @@ void dySky::print_dataset (Config* cfg){
 
     for (int i = 0; i < this->to_dataset.size() ; i++)
     {
-        for (int j = 1; j <= cfg->statDim_size-1 ; j++){
+        for (int j = 1; j <= cfg->statDim_size ; j++){
             monFlux1 << this->to_dataset[i][j]<<";";  
         } 
-        monFlux1 << this->to_dataset[i][cfg->statDim_size]<< endl;
+        monFlux1 << this->po_dataset[i]<< endl;
     }
 }
 
@@ -121,6 +141,17 @@ int dySky::compute_candidates(Config* cfg){
 
  	cout << "Totally, there is "<<this->candidates.size() + this->never_sky.size() + this->always_sky.size()<<" objects"<<endl; 
 
+ 	string const nomFichier1("always_sky_2.csv");
+    ofstream monFlux1(nomFichier1.c_str());
+
+    for (int i = 0; i < this->always_sky.size() ; i++)
+    {
+        for (int j = 0; j <= cfg->statDim_size ; j++){
+            monFlux1 << this->to_dataset[this->always_sky[i]][j]<<";";  
+        } 
+        monFlux1 << this->po_dataset[this->always_sky[i]]<< endl;
+    }
+
 }
 
 void dySky::compute_views(Config* cfg){
@@ -129,7 +160,7 @@ void dySky::compute_views(Config* cfg){
 		{
 			if (i!=j){
 				//cout << "order " << i <<" "<< j<< endl; 
-				compute_view(cfg,Order(i,j));
+	 			compute_view(cfg,Order(i,j));
 			}
 		}
 	}
@@ -144,10 +175,15 @@ void dySky::compute_view(Config* cfg, Order o){
 	vector<id> sky_union_candidates;
 	sky_union_candidates.insert(sky_union_candidates.end(), this->always_sky.begin(), this->always_sky.end());
 	sky_union_candidates.insert(sky_union_candidates.end(), this->candidates.begin(), this->candidates.end());
+	// cerr << "sky_union_candidates"<<endl;
+	// for (auto it = sky_union_candidates.begin();it!=sky_union_candidates.end(); it++){	
+	// 	cerr << (*it)<<endl;
+	// }
 	vector<Point> temp_dataset;
 	
 	for (int i=0; i<sky_union_candidates.size(); i++){
 		if (this->po_dataset[sky_union_candidates[i]]==o.first){
+			//cerr<<sky_union_candidates[i]<<"first"<<endl;
 			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
 			for (int j=0;j<=cfg->statDim_size;j++){
 				p[j]=to_dataset[sky_union_candidates[i]][j];
@@ -155,6 +191,7 @@ void dySky::compute_view(Config* cfg, Order o){
 			p[cfg->statDim_size+1]=0;
 			temp_dataset.push_back(p);
 		}else if (this->po_dataset[sky_union_candidates[i]]==o.second){
+			//cerr<<sky_union_candidates[i]<<"second"<<endl;
 			Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
 			for (int j=0;j<=cfg->statDim_size;j++){
 				p[j]=to_dataset[sky_union_candidates[i]][j];
@@ -163,22 +200,48 @@ void dySky::compute_view(Config* cfg, Order o){
 			temp_dataset.push_back(p);
 		}
 	}
-
+	//cerr << "temp_dataset"<<endl;
+	//for (int i=0 ; i< temp_dataset.size(); i++) cerr <<temp_dataset[i][cfg->statDim_size+1]<<endl;
 	// compute skyline set for this view
 	
 	int All = (1<<(cfg->statDim_size+1))-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+1, full_Space);
 	vector<id> view_sky=subspaceSkylineSize_TREE(full_Space, temp_dataset);
-	std::vector<int> view_candidates(view_sky.size());  //filled with zeros
-  	std::vector<int>::iterator it_view;
+	//remove always skyline ids 
+	std::vector<id> view_candidates(view_sky.size());  
+  	std::vector<id>::iterator it_view;
   	std::sort (view_sky.begin(),view_sky.end());
   	it_view=std::set_difference (view_sky.begin(),view_sky.end(), 
-  		this->always_sky.begin(),this->always_sky.end(), view_candidates.begin()); // diff between all ids and dom objects
+  		this->always_sky.begin(),this->always_sky.end(), view_candidates.begin()); 
   	view_candidates.resize(it_view-view_candidates.begin());  
+  	//add other candidates
+  	for (auto it=this->candidates.begin(); it!=this->candidates.end(); it++){
+  		if (this->po_dataset[(*it)]!=o.first && this->po_dataset[(*it)]!=o.second){
+  			view_candidates.push_back(*it);
+  		}
+  	}
+  	std::sort (view_candidates.begin(),view_candidates.end());
     this->skyline_view.insert(pair<Order, vector<id> >(o,view_candidates));
-
 }
 
+vector<id> dySky::compute_skyline(Config* cfg, vector<Order> preference){
+	// compute union of all concerned views
+	vector<id> result;
+	if (preference.size()==1){
+		result=this->skyline_view[preference[0]];
+	}
+	else{
 
-
+		result=this->skyline_view[preference[0]];
+		for (int i=1; i<preference.size(); i++){
+			std::vector<id> v(result.size());   
+  			std::vector<id>::iterator it;
+  			it=std::set_intersection(result.begin(), result.end(), this->skyline_view[preference[i]].begin(),
+  				this->skyline_view[preference[i]].end(), v.begin());                        
+  			v.resize(it-v.begin());   
+  			result=v;         
+		}
+	}
+	return result;
+}
