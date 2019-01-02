@@ -11,13 +11,13 @@
 #include "dySky.h"
 #include "graph.h"
 #include "preference.h"
+#include <omp.h>
 
 using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
-
 
 void printUsage() {
 	printf("\ndySky - computes Skyline over datasets with dynamic partial order\n\n");
@@ -36,11 +36,11 @@ void printUsage() {
 int main(int argc, char** argv) {
 
 	Config *cfg = new Config;
-	cfg->dataset_size=1000;
-	cfg->statDim_size=4;
+	cfg->dataset_size=100000;
+	cfg->statDim_size=8;
 	cfg->statDim_val=20;
 	cfg->dyDim_size=1;
-	cfg->dyDim_val=4;
+	cfg->dyDim_val=10;
 	cfg->num_threads=8;
 	cfg->verbose=false;
 
@@ -81,24 +81,28 @@ int main(int argc, char** argv) {
 	// generate partial order data
 	dysky.generate_po_data(cfg);
 	// compute skyline by BSkyTree on static order dimensions (Always Sky)
+	double start_time=omp_get_wtime();
 	dysky.compute_always_skyline(cfg);
+	cout<<"--> Time for compute_always_skyline: "<< omp_get_wtime()-start_time << endl;
 	// compute candidates 
+	start_time=omp_get_wtime();
 	dysky.compute_candidates(cfg);
+	cout<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time << endl;
 	// compute views
+	start_time=omp_get_wtime();
 	dysky.compute_views(cfg);
-
+	cout<<"--> Time for compute_views: "<< omp_get_wtime()-start_time << endl;
 	dysky.print_dataset(cfg);
-
+	// preference for test (total order)
 	vector<Order> preference;
-	preference.push_back(Order(0,1));
-	preference.push_back(Order(0,2));
-	preference.push_back(Order(0,3));
-	preference.push_back(Order(1,2));
-	preference.push_back(Order(1,3));
-	preference.push_back(Order(2,3));
-
+	for (int i=0;i<cfg->dyDim_val-1;i++){
+		for (int j=i+1;j<cfg->dyDim_val;j++){
+			preference.push_back(Order(i,j));
+		}
+	}
+	start_time=omp_get_wtime();
 	cout << "size result: "<< dysky.compute_skyline(cfg, preference).size()<<endl;
-
+	cout<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time << endl;
 
 
 
