@@ -106,18 +106,21 @@ int main(int argc, char** argv) {
 	p.add_vertices(cfg->dyDim_val);
 	p.print_vertices();
 	for (id source=0;source<cfg->dyDim_val-1;source++){
-		vector<id> v_dest;
-		for (int dest=source+1;dest<cfg->dyDim_val;dest++){
-			v_dest.push_back(dest);
-		}
+		unordered_set<id> v_dest;
+		v_dest.insert(source+1);
 		p.add_edges(source,v_dest);
 	}
+	//p.add_edges(0,{1,2});
+	//p.add_edges(1,{2,3});
+	//p.add_edges(2,{3});
 	p.print_edges();
+	Preference p_trans;
+	p_trans.compute_transitive_closure(p);
 
 	// skyline query answering by dySky
 
 	vector<Order> preference_orders;
-	unordered_map<id,vector<id> > out_edges=p.get_edges();
+	unordered_map<id,unordered_set<id> > out_edges=p_trans.get_edges();
 	for (auto it=out_edges.begin(); it!=out_edges.end();it++){
 		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
 			preference_orders.push_back(Order((it->first),(*it2)));
@@ -130,6 +133,6 @@ int main(int argc, char** argv) {
 	// skyline query answering by CPS
 
 	Cps cps;
-
+	//cps.decompose_preference(p);
 
 }

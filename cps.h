@@ -19,18 +19,43 @@ using namespace std;
 class Cps{
 	vector<Graph<int>> chains;
 public: 
-	void decompose_preference(Preference p);
-	Graph<int> compute_transitive_closure(Preference p);
+	void decompose_preference(Graph<int> p);
+	
 };
 
-void Cps::decompose_preference(Preference p){
+void Cps::decompose_preference(Graph<int> p){
 
-Graph<int> transitive_preference=Cps::compute_transitive_closure(p);
+	Graph<int> transitive_preference;
+
+	// compute transitive
+
+	transitive_preference.compute_transitive_closure(p);
+
+	// find missing order
+
+	vector<Order> missing_orders;
+	cout << "missing orders"<<endl;
+	for (auto it = transitive_preference.vertices.begin(); it != transitive_preference.vertices.end(); it++){
+		if (transitive_preference.out_edges.find(*it)!=transitive_preference.out_edges.end()){
+			for (int i=0;i<transitive_preference.vertices.size();i++){
+				if (transitive_preference.out_edges[*it].find(i)==transitive_preference.out_edges[*it].end() && (*it)!=i){
+					missing_orders.push_back(pair<id,id>((*it),i));
+					cout <<(*it)<<i<<endl;
+				}
+			}
+		}
+		else{
+			for (int i=0;i<transitive_preference.vertices.size();i++){
+				if ((*it)!=i){
+					missing_orders.push_back(pair<id,id>((*it),i));
+					cout <<(*it)<<i<<endl;
+				}
+			}
+		}
+	}
+
+	// remove induced orders
 
 }
 
-Graph<int> Cps::compute_transitive_closure(Preference p){
 
-	Graph<int> g;
-
-}
