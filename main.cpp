@@ -11,6 +11,7 @@
 #include "dySky.h"
 #include "graph.h"
 #include "preference.h"
+#include "cps.h"
 #include <omp.h>
 
 using namespace std;
@@ -75,6 +76,8 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	// start for pre processing
+
 	dySky dysky;
 	// generate total order data
 	dysky.generate_to_data(cfg);
@@ -93,23 +96,40 @@ int main(int argc, char** argv) {
 	dysky.compute_views(cfg);
 	cout<<"--> Time for compute_views: "<< omp_get_wtime()-start_time << endl;
 	dysky.print_dataset(cfg);
-	// preference for test (total order)
-	vector<Order> preference;
-	for (int i=0;i<cfg->dyDim_val-1;i++){
-		for (int j=i+1;j<cfg->dyDim_val;j++){
-			preference.push_back(Order(i,j));
+
+	// end of pre processing
+
+	// start of skyline query answering
+
+	// input preference
+	Preference p;
+	p.add_vertices(cfg->dyDim_val);
+	p.print_vertices();
+	for (id source=0;source<cfg->dyDim_val-1;source++){
+		vector<id> v_dest;
+		for (int dest=source+1;dest<cfg->dyDim_val;dest++){
+			v_dest.push_back(dest);
+		}
+		p.add_edges(source,v_dest);
+	}
+	p.print_edges();
+
+	// skyline query answering by dySky
+
+	vector<Order> preference_orders;
+	unordered_map<id,vector<id> > out_edges=p.get_edges();
+	for (auto it=out_edges.begin(); it!=out_edges.end();it++){
+		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
+			preference_orders.push_back(Order((it->first),(*it2)));
 		}
 	}
 	start_time=omp_get_wtime();
-	cout << "size result: "<< dysky.compute_skyline(cfg, preference).size()<<endl;
+	cout << "size result: "<< dysky.compute_skyline(cfg, preference_orders).size()<<endl;
 	cout<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time << endl;
 
+	// skyline query answering by CPS
+
+	Cps cps;
 
 
-	// input preference
-	// Preference p;
-	// p.add_vertices(cfg->dyDim_val);
-	// p.print_vertices();
-	// transform partial order dimension to k total order dimension
-	//dysky.transform_po-to()
 }
