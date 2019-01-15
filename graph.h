@@ -11,6 +11,7 @@ class Graph
 public:
 	vector<T> vertices;
 	unordered_map<T,unordered_set<T> > out_edges;
+	vector<int> vertex_color;
 
 	void add_vertices(vector<T> vertices);
 	void add_outedges(T vertex_source, unordered_set<T> vertices_destination);
@@ -18,6 +19,8 @@ public:
 	void print_vertices();
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
+	void greedyColoring(); 
+
 };
 
 template <typename T>
@@ -85,6 +88,68 @@ void Graph<T>::compute_transitive_closure(Graph<T> p){
 		recursive_add(p.out_edges,it->first,vertices_dest);
 		this->add_outedges(it->first,vertices_dest);
 	}
-	cout << "version transtive du graphe"<<endl;
-	this->print_edges();
 }
+
+// Assigns colors (starting from 0) to all vertices and prints 
+// the assignment of colors 
+template <typename T>
+void Graph<T>::greedyColoring() 
+{ 	
+	int V;    // No. of vertices 
+    list<int> *adj;    // A dynamic array of adjacency lists 
+
+    V=this->vertices.size();
+    adj = new list<int>[V];
+
+    for (auto it_umap=this->out_edges.begin();it_umap!=this->out_edges.end();it_umap++){
+    	for (auto it_uset=it_umap->second.begin();it_uset!=it_umap->second.end();it_uset++){
+    		adj[it_umap->first].push_back(*it_uset);
+    	}	
+    }
+
+    int result[V]; 
+  
+    // Assign the first color to first vertex 
+    result[0]  = 0; 
+  
+    // Initialize remaining V-1 vertices as unassigned 
+    for (int u = 1; u < V; u++) 
+        result[u] = -1;  // no color is assigned to u 
+  
+    // A temporary array to store the available colors. True 
+    // value of available[cr] would mean that the color cr is 
+    // assigned to one of its adjacent vertices 
+    bool available[V]; 
+    for (int cr = 0; cr < V; cr++) 
+        available[cr] = false; 
+  
+    // Assign colors to remaining V-1 vertices 
+    for (int u = 1; u < V; u++) 
+    { 
+        // Process all adjacent vertices and flag their colors 
+        // as unavailable 
+        list<int>::iterator i; 
+        for (i = adj[u].begin(); i != adj[u].end(); ++i) 
+            if (result[*i] != -1) 
+                available[result[*i]] = true; 
+  
+        // Find the first available color 
+        int cr; 
+        for (cr = 0; cr < V; cr++) 
+            if (available[cr] == false) 
+                break; 
+  
+        result[u] = cr; // Assign the found color 
+  
+        // Reset the values back to false for the next iteration 
+        for (i = adj[u].begin(); i != adj[u].end(); ++i) 
+            if (result[*i] != -1) 
+                available[result[*i]] = false; 
+    } 
+  
+    // print the result 
+    for (int u = 0; u < V; u++){ 
+        //cout << "Vertex " << u << " --->  Color "<< result[u] << endl; 
+        this->vertex_color.push_back(result[u]);
+    }
+} 

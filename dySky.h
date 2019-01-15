@@ -17,15 +17,13 @@
 using namespace std;
 
 class dySky {
-		
+	public:
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
 	vector<id> always_sky;
 	vector<id> never_sky;
 	vector<id> candidates;
 	unordered_map<Order,vector<id>, pairhash> skyline_view;
- 
-	public:
 
 	void generate_to_data(Config* cfg); 
 	void generate_po_data(Config* cfg);
