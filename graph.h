@@ -20,6 +20,7 @@ public:
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
 	void greedyColoring(); 
+	bool is_subgraph(Graph<T> p); 
 
 };
 
@@ -153,3 +154,15 @@ void Graph<T>::greedyColoring()
         this->vertex_color.push_back(result[u]);
     }
 } 
+
+
+template <typename T>
+bool Graph<T>::is_subgraph(Graph<T> p) 
+{
+	for(auto it_outedges=p.out_edges.begin();it_outedges!=p.out_edges.end();it_outedges++){
+		auto it_source_edge=this->out_edges.find(it_outedges->first);
+		if (it_source_edge==this->out_edges.end()){
+			cout <<"non compatible"<<endl;
+		}
+	}
+}

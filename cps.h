@@ -1,5 +1,5 @@
 /*
- * dySky.h
+ * cps.h
  *
  *  Created on: January 13, 2019
  *      Author: karim
@@ -23,6 +23,7 @@ public:
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
 	vector<Graph<int>> chains;
+	vector<id> skyline_result;
 
 	void decompose_preference(Graph<int> p, Config *cfg);
 	void compute_skyline(Config *cfg);
@@ -216,8 +217,8 @@ void Cps::compute_skyline(Config *cfg){
 			temp_dataset.push_back(p);
 	}
 
-    vector<id> skyline=subspaceSkylineSize_TREE(full_Space, temp_dataset);
-    cout << "Skyline size: "<<skyline.size()<<endl;
+    skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+    cout << "Skyline size: "<<skyline_result.size()<<endl;
 }
 
 
