@@ -26,7 +26,7 @@ public:
 	vector<id> skyline_result;
 
 	void decompose_preference(Graph<int> p, Config *cfg);
-	void compute_skyline(Config *cfg);
+	int compute_skyline(Config *cfg);
 };
 
 void Cps::decompose_preference(Graph<int> p, Config *cfg){
@@ -177,7 +177,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg){
 
 }
 
-void Cps::compute_skyline(Config *cfg){
+int Cps::compute_skyline(Config *cfg){
 	// encoding values into <number_colors> tuple
 	vector<vector<int>> values_encoding;
 	for (int i=0;i<cfg->dyDim_val;i++){
@@ -219,6 +219,7 @@ void Cps::compute_skyline(Config *cfg){
 
     skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
     cout << "Skyline size: "<<skyline_result.size()<<endl;
+    return skyline_result.size();
 }
 
 

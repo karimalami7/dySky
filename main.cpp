@@ -14,6 +14,7 @@
 #include "cps.h"
 #include "arg.h"
 #include "tos.h"
+#include "query.h"
 #include <omp.h>
 
 using namespace std;
@@ -80,11 +81,11 @@ int main(int argc, char** argv) {
 
 
 
-
+	cerr << "---PREPROCESSING---"<<endl<<endl;
 	// dySky
 	cerr << "=====dySky=====" <<endl;
 	// start for pre processing
-	cerr << "---preprocessing---"<<endl;
+	
 	dySky dysky;
 	// generate total order data
 	dysky.generate_to_data(cfg);
@@ -109,15 +110,14 @@ int main(int argc, char** argv) {
 	
 	cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
 
+	cerr<<endl;
 
 	//ARG  
-
-	// cache queries
+	// compute skyline view wrt some partial order
 
 	cerr << "=====Arg=====" <<endl;
 	start_time=omp_get_wtime();
 	// store skylines
-	cerr << "---Compute skylines to cache---" <<endl;
 	// Arg arg;
 	// arg.cached_preferences.push_back(p);
 	// Cps *cps_arg = new Cps();
@@ -128,14 +128,13 @@ int main(int argc, char** argv) {
 	// arg.cached_skylines.push_back(cps_arg->skyline_result);
 	cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
 
-
+	cerr<<endl;
+	
 	// TOS
-
-	// compute all total orders
+	// compute a skyline view wrt all possible total orders
 
 	cerr << "=====TOS=====" <<endl;
 	start_time=omp_get_wtime();
-	cerr << "---Compute all TO skylines---" <<endl;
 
   	Tos tos;
   	vector<int> tos_values;
@@ -158,10 +157,23 @@ int main(int argc, char** argv) {
   	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
   	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
 
-  	// skyline query answering
+  	cerr<<endl;
 
+
+
+  	////////////////////////////
+  	// skyline query answering
+  	///////////////////////////
+
+
+  	cerr << "---QUERY ANSWERING---"<<endl<<endl;
   	// input preference
-	cerr << "Input preference: "<<endl;
+	//cerr << "Input preference: "<<endl;
+	Query q;
+	q.generate_preference(cfg);
+	cout << "query preferences: "<<endl;
+	q.preference.print_edges();
+
 	Preference p;
 	p.add_vertices(cfg->dyDim_val);
 	p.print_vertices();
@@ -172,11 +184,9 @@ int main(int argc, char** argv) {
 	// }
 	p.add_edges(0,{1,2,3});
 	p.print_edges();
-	Preference p_trans;
-	p_trans.compute_transitive_closure(p);
 
-	// skyline query answering by dySky
-	cerr << "---query answering by dySky---"<<endl;
+	Preference p_trans;
+	p_trans.compute_transitive_closure(q.preference);
 
 	vector<Order> preference_orders;
 	unordered_map<id,unordered_set<id> > out_edges=p_trans.get_edges();
@@ -185,36 +195,55 @@ int main(int argc, char** argv) {
 			preference_orders.push_back(Order((it->first),(*it2)));
 		}
 	}
+
+	// skyline query answering by dySky using materialized 
+	cerr << "=====dySky: materialized views=====" <<endl;
+
 	start_time2=omp_get_wtime();
-	cerr << "size result: "<< dysky.compute_skyline(cfg, preference_orders).size()+dysky.always_sky.size()<<endl;
-	cerr<<"--> Time for computing skyline by dySky : "<< omp_get_wtime()-start_time2 << endl;
+	cerr << "--> Result size: "<< dysky.compute_skyline(cfg, preference_orders).size()+dysky.always_sky.size()<<endl;
+	cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
 
-  	// compute an issued query by ARG
-	cerr << "---compute an issued query by ARG---" <<endl;
-	p.is_subgraph(p);
+	cerr <<endl;
 
-	// compute an issued query by TOS
-	cerr << "---compute an issued query by TOS---" <<endl;
+	cerr << "=====dySky: virtual views=====" <<endl;
+	// delete materialized views and compute only the views need for the issued query
+	dysky.skyline_view.clear();
+	start_time=omp_get_wtime();
+	dysky.compute_views(cfg, preference_orders);
+	cerr << "--> Result size: "<< dysky.compute_skyline(cfg, preference_orders).size()+dysky.always_sky.size()<<endl;
+	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+
+	cerr <<endl;
 
   	// skyline query answering by CPS
 	// CPS
 	cerr << "=====CPS=====" <<endl;
 	// start for preference decompositon
 	start_time=omp_get_wtime();
-	cerr << "---preference decompositon---"<<endl;
+	//cerr << "---preference decompositon---"<<endl;
 	Cps cps;
 	start_time2=omp_get_wtime();
-	cps.decompose_preference(p,cfg);
+	cps.decompose_preference(q.preference,cfg);
 	cerr<<"--> Time for preference decompositon: "<< omp_get_wtime()-start_time2 << endl;
 	//start for query answering
-	cerr << "---query answering---"<<endl;
+	//cerr << "---query answering---"<<endl;
 	start_time2=omp_get_wtime();
 	cps.to_dataset=dysky.to_dataset;
 	cps.po_dataset=dysky.po_dataset;
-	cps.compute_skyline(cfg);
-	cerr<<"--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
-	cerr<<"--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
+	cerr<< "--> Result size: "<<cps.compute_skyline(cfg)<<endl;
+	cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
+	cerr<< "--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
 
+	cerr <<endl;
+
+  	// compute an issued query by ARG
+	cerr << "=====Arg=====" <<endl;
+	p.is_subgraph(p);
+
+	cerr <<endl;
+
+	// compute an issued query by TOS
+	cerr << "=====TOS=====" <<endl;
 
 }
 

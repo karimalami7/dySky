@@ -30,6 +30,7 @@ class dySky {
 	void compute_always_skyline(Config* cfg);
 	int compute_candidates(Config* cfg);
 	void compute_views(Config* cfg);
+	void compute_views(Config* cfg, vector<Order> preference);
 	void compute_view(Config* cfg, Order o);
 	vector<id> compute_skyline(Config* cfg, vector<Order> preference);
 	void print_dataset (Config* cfg);
@@ -161,6 +162,19 @@ void dySky::compute_views(Config* cfg){
 	 			compute_view(cfg,Order(i,j));
 			}
 		}
+	}
+	int views_total_storage=0;
+	for (auto it=this->skyline_view.begin();it!=this->skyline_view.end();it++){
+		views_total_storage+=(it->second).size();
+	}
+	cout << "Views total storage: " << views_total_storage <<endl;
+}
+
+void dySky::compute_views(Config* cfg, vector<Order> preference){
+	for (int i=0; i<preference.size();i++)
+	{
+		//cout << "order " << i <<" "<< j<< endl; 
+		compute_view(cfg,preference[i]);
 	}
 	int views_total_storage=0;
 	for (auto it=this->skyline_view.begin();it!=this->skyline_view.end();it++){

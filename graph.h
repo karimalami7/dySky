@@ -15,6 +15,7 @@ public:
 
 	void add_vertices(vector<T> vertices);
 	void add_outedges(T vertex_source, unordered_set<T> vertices_destination);
+	void add_outedge(T vertex_source, T vertex_destination);
 	unordered_map<T,unordered_set<T> > get_edges();
 	void print_vertices();
 	void print_edges();
@@ -41,6 +42,20 @@ void Graph<T>::add_outedges(T vertex_source, unordered_set<T> vertices_destinati
 		this->out_edges.insert(pair<T,unordered_set<T> >(vertex_source,vertices_destination));
 	}
 }
+
+template <typename T>
+void Graph<T>::add_outedge(T vertex_source, T vertex_destination){
+	auto it = this->out_edges.find(vertex_source);
+	if(it!=this->out_edges.end()){
+		it->second.insert(vertex_destination);
+	}
+	else{
+		unordered_set<T> vertices_destination;
+		vertices_destination.insert(vertex_destination);
+		this->out_edges.insert(pair<T,unordered_set<T> >(vertex_source,vertices_destination));
+	}
+}
+
 template <typename T>
 unordered_map<T,unordered_set<T> > Graph<T>::get_edges(){
 	return this->out_edges;
