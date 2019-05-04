@@ -238,7 +238,7 @@ void dySky::compute_view(Config* cfg, Order o){
 }
 
 vector<id> dySky::compute_skyline(Config* cfg, vector<Order> preference){
-	// compute union of all concerned views
+	// compute intersection of skyline of all concerned views
 	vector<id> result;
 	if (preference.size()==1){
 		result=this->skyline_view[preference[0]];

@@ -40,12 +40,12 @@ void printUsage() {
 int main(int argc, char** argv) {
 
 	Config *cfg = new Config;
-	cfg->dataset_size=100000;
-	cfg->statDim_size=8;
-	cfg->statDim_val=20;
+	cfg->dataset_size=10000;
+	cfg->statDim_size=6;
+	cfg->statDim_val=100;
 	cfg->dyDim_size=1;
-	cfg->dyDim_val=4;
-	cfg->num_threads=8;
+	cfg->dyDim_val=6;
+	cfg->num_threads=24;
 	cfg->verbose=false;
 
 	int c = 0;
@@ -80,8 +80,13 @@ int main(int argc, char** argv) {
 	}
 
 
+  	////////////////////////////
+  	// Preprocessing
+  	///////////////////////////
 
 	cerr << "---PREPROCESSING---"<<endl<<endl;
+
+	//**********************************************
 	// dySky
 	cerr << "=====dySky=====" <<endl;
 	// start for pre processing
@@ -105,15 +110,13 @@ int main(int argc, char** argv) {
 	dysky.compute_views(cfg);
 	cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 	dysky.print_dataset(cfg);
-
-	// end of pre processing
-	
 	cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
-
+	//***********************************************
+	
 	cerr<<endl;
 
-	//ARG  
-	// compute skyline view wrt some partial order
+	//***********************************************
+	//ARG: compute skyline view wrt some partial order
 
 	cerr << "=====Arg=====" <<endl;
 	start_time=omp_get_wtime();
@@ -127,18 +130,19 @@ int main(int argc, char** argv) {
 	// cps_arg->compute_skyline(cfg);
 	// arg.cached_skylines.push_back(cps_arg->skyline_result);
 	cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
+	//************************************************
 
 	cerr<<endl;
 	
-	// TOS
-	// compute a skyline view wrt all possible total orders
+	//************************************************
+	// TOS: compute a skyline view wrt all possible total orders
 
 	cerr << "=====TOS=====" <<endl;
 	start_time=omp_get_wtime();
 
   	Tos tos;
-  	vector<int> tos_values;
-  	for (int i=0; i<cfg->dyDim_val; i++){tos_values.push_back(i);}
+  	chain tos_values(cfg->dyDim_val);
+  	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
   	do {
   	  	Preference p_to;
 		p_to.add_vertices(cfg->dyDim_val);
@@ -154,11 +158,14 @@ int main(int argc, char** argv) {
 		cps_tos->compute_skyline(cfg);
 		tos.cached_preferences.push_back(p_to);
 		tos.cached_skylines.push_back(cps_tos->skyline_result);
+		auto it=tos.cache.find(tos_values);
+		tos.cache[tos_values]=cps_tos->skyline_result;
+
   	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
   	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
-
+  	//***********************************************
+  	
   	cerr<<endl;
-
 
 
   	////////////////////////////
@@ -244,6 +251,13 @@ int main(int argc, char** argv) {
 
 	// compute an issued query by TOS
 	cerr << "=====TOS=====" <<endl;
+	start_time=omp_get_wtime();
+	Cps cps_for_tos;
+	start_time2=omp_get_wtime();
+	cps_for_tos.decompose_preference(q.preference,cfg);
+	cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
+	cerr<< "--> Result size: "<<tos.compute_skyline(cps_for_tos.chains, cfg).size() <<endl;
+	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
 
 }
 

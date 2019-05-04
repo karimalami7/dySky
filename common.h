@@ -28,6 +28,7 @@ typedef  int* Point;
 typedef  pair<int,int> Order;
 typedef int Space;
 typedef int id;
+typedef vector<int> chain;
 
 void listeAttributsPresents(Space subspace, Space d, vector<Space> &result);
 

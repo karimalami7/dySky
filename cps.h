@@ -28,7 +28,7 @@ public:
 	void decompose_preference(Graph<int> p, Config *cfg);
 	int compute_skyline(Config *cfg);
 };
-
+// decompose a partial order into chains
 void Cps::decompose_preference(Graph<int> p, Config *cfg){
 
 	Graph<int> transitive_preference;
