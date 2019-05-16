@@ -1,3 +1,10 @@
+/*
+ * query.h
+ *
+ *  Created on: Avril 24, 2019
+ *      Author: karim
+ */
+
 class Query {
 
 public:

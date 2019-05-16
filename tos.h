@@ -20,8 +20,6 @@ public:
 
 	vector<Point> to_dataset;
 	vector<int> po_dataset;
-	vector<Graph<int>> cached_preferences;
-	vector<vector<id>> cached_skylines;
 	map<chain, vector<id>> cache;
 
 	vector<id> compute_skyline(vector<Graph<int>> chains, Config *cfg);
@@ -32,6 +30,8 @@ public:
 
 vector<id> Tos::compute_skyline(vector<Graph<int>> chains, Config *cfg){
 
+	cout << "Tos::compute_skyline"<<endl;
+	
 	vector<chain> chains_vec;
 	
 	this->chain_graph_to_vec_representation(chains, cfg, chains_vec);
@@ -69,6 +69,9 @@ vector<id> Tos::compute_skyline(vector<Graph<int>> chains, Config *cfg){
 
 
 void Tos::chain_graph_to_vec_representation(vector<Graph<int>> chains, Config *cfg, vector<chain> &chains_vec){
+		
+	cout << "Tos::chain_graph_to_vec_representation"<<endl;
+
 	//**************************************************
 	// transforms chains from graph representation to vector representation
 	for (Graph<int> g : chains){

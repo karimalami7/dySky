@@ -30,7 +30,7 @@ public:
 };
 // decompose a partial order into chains
 void Cps::decompose_preference(Graph<int> p, Config *cfg){
-
+	cout <<"Cps::decompose_preference"<<endl;
 	Graph<int> transitive_preference;
 
 	// compute transitive
@@ -179,12 +179,13 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg){
 
 int Cps::compute_skyline(Config *cfg){
 	// encoding values into <number_colors> tuple
+	cout << "Cps::compute_skyline"<<endl;
 	vector<vector<int>> values_encoding;
 	for (int i=0;i<cfg->dyDim_val;i++){
 		vector<int> encoding; 
-		for (int j=0;j<chains.size();j++){
-			auto it_graph=chains[j].out_edges.find(i);
-			if (it_graph!=chains[j].out_edges.end()){
+		for (int j=0;j<this->chains.size();j++){
+			auto it_graph=this->chains[j].out_edges.find(i);
+			if (it_graph!=this->chains[j].out_edges.end()){
 				encoding.push_back(cfg->dyDim_val-it_graph->second.size()-1);
 			}
 			else{
@@ -196,7 +197,7 @@ int Cps::compute_skyline(Config *cfg){
 
 	for (int i=0;i<cfg->dyDim_val;i++){
 		cout << "value: " << i << " encoding: "; 
-		for (int j=0;j<chains.size();j++){
+		for (int j=0;j<this->chains.size();j++){
 			cout << values_encoding[i][j] <<" ";
 		}	
 		cout<<endl;
@@ -206,7 +207,7 @@ int Cps::compute_skyline(Config *cfg){
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+chains.size(), full_Space);
 	vector<Point> temp_dataset;
-	for (int i=0; i< cfg->dataset_size; i++){
+	for (int i=0; i< this->to_dataset.size(); i++){
 		Point p=(int*)malloc((cfg->statDim_size+chains.size()+1)*sizeof(int));
 			for (int j=0;j<=cfg->statDim_size;j++){
 				p[j]=to_dataset[i][j];

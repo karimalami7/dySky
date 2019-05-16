@@ -173,11 +173,20 @@ void Graph<T>::greedyColoring()
 
 template <typename T>
 bool Graph<T>::is_subgraph(Graph<T> p) 
-{
-	for(auto it_outedges=p.out_edges.begin();it_outedges!=p.out_edges.end();it_outedges++){
-		auto it_source_edge=this->out_edges.find(it_outedges->first);
+{	
+	for(auto it_outedges=this->out_edges.begin();it_outedges!=this->out_edges.end();it_outedges++){
+		auto it_source_edge=p.out_edges.find(it_outedges->first);
 		if (it_source_edge==this->out_edges.end()){
-			cout <<"non compatible"<<endl;
+			return false;
+		}
+		else {
+			for (auto it_dests = it_outedges->second.begin(); it_dests != it_outedges->second.end(); it_dests++){
+				auto dest=it_source_edge->second.find(*it_dests);
+				if (dest==it_source_edge->second.end()){
+					return false;
+				}
+			}
 		}
 	}
+	return true;
 }

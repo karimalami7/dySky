@@ -11,10 +11,10 @@
 #include "dySky.h"
 #include "graph.h"
 #include "preference.h"
+#include "query.h"
 #include "cps.h"
 #include "arg.h"
 #include "tos.h"
-#include "query.h"
 #include <omp.h>
 
 using namespace std;
@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
 	cfg->statDim_val=100;
 	cfg->dyDim_size=1;
 	cfg->dyDim_val=6;
-	cfg->num_threads=24;
 	cfg->verbose=false;
 
 	int c = 0;
@@ -68,9 +67,6 @@ int main(int argc, char** argv) {
 		case 'm':
 			cfg->dyDim_val = atoi(optarg);
 			break;
-		case 't':
-			cfg->num_threads = atoi(optarg);
-			break;
 		default:
 			if (isprint(optopt))
 				fprintf( stderr, "Unknown option `-%c'.\n", optopt);
@@ -78,11 +74,12 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 	}
+	time_t val=144630157;
+    srand (val);
 
-
-  	////////////////////////////
+  	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
-  	///////////////////////////
+  	//
 
 	cerr << "---PREPROCESSING---"<<endl<<endl;
 
@@ -120,15 +117,11 @@ int main(int argc, char** argv) {
 
 	cerr << "=====Arg=====" <<endl;
 	start_time=omp_get_wtime();
-	// store skylines
-	// Arg arg;
-	// arg.cached_preferences.push_back(p);
-	// Cps *cps_arg = new Cps();
-	// cps_arg->decompose_preference(p,cfg);
-	// cps_arg->to_dataset=dysky.to_dataset;
-	// cps_arg->po_dataset=dysky.po_dataset;
-	// cps_arg->compute_skyline(cfg);
-	// arg.cached_skylines.push_back(cps_arg->skyline_result);
+	Arg arg;
+	arg.to_dataset=dysky.to_dataset;
+	arg.po_dataset=dysky.po_dataset;
+	arg.compute_views(cfg);
+
 	cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
 	//************************************************
 
@@ -156,9 +149,6 @@ int main(int argc, char** argv) {
 		cps_tos->to_dataset=dysky.to_dataset;
 		cps_tos->po_dataset=dysky.po_dataset;
 		cps_tos->compute_skyline(cfg);
-		tos.cached_preferences.push_back(p_to);
-		tos.cached_skylines.push_back(cps_tos->skyline_result);
-		auto it=tos.cache.find(tos_values);
 		tos.cache[tos_values]=cps_tos->skyline_result;
 
   	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
@@ -168,9 +158,9 @@ int main(int argc, char** argv) {
   	cerr<<endl;
 
 
-  	////////////////////////////
+  	/////////////////////////////////////////////////////////////////////////////
   	// skyline query answering
-  	///////////////////////////
+  	//
 
 
   	cerr << "---QUERY ANSWERING---"<<endl<<endl;
@@ -181,22 +171,10 @@ int main(int argc, char** argv) {
 	cout << "query preferences: "<<endl;
 	q.preference.print_edges();
 
-	Preference p;
-	p.add_vertices(cfg->dyDim_val);
-	p.print_vertices();
-	// for (id source=0;source<cfg->dyDim_val-1;source++){
-	// 	unordered_set<id> v_dest;
-	// 	v_dest.insert(source+1);
-	// 	p.add_edges(source,v_dest);
-	// }
-	p.add_edges(0,{1,2,3});
-	p.print_edges();
-
-	Preference p_trans;
-	p_trans.compute_transitive_closure(q.preference);
+	q.preference.compute_transitive_closure(q.preference);
 
 	vector<Order> preference_orders;
-	unordered_map<id,unordered_set<id> > out_edges=p_trans.get_edges();
+	unordered_map<id,unordered_set<id> > out_edges=q.preference.get_edges();
 	for (auto it=out_edges.begin(); it!=out_edges.end();it++){
 		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
 			preference_orders.push_back(Order((it->first),(*it2)));
@@ -245,19 +223,22 @@ int main(int argc, char** argv) {
 
   	// compute an issued query by ARG
 	cerr << "=====Arg=====" <<endl;
-	p.is_subgraph(p);
-
+	start_time=omp_get_wtime();
+	arg.compute_skyline(cfg,q);
+	cerr<< "--> Result size: "<<arg.skyline_result.size() <<endl;
+	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;	
 	cerr <<endl;
 
 	// compute an issued query by TOS
 	cerr << "=====TOS=====" <<endl;
 	start_time=omp_get_wtime();
 	Cps cps_for_tos;
-	start_time2=omp_get_wtime();
 	cps_for_tos.decompose_preference(q.preference,cfg);
 	cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
 	cerr<< "--> Result size: "<<tos.compute_skyline(cps_for_tos.chains, cfg).size() <<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+
+	//**************************************************************************************
 
 }
 

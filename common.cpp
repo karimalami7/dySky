@@ -12,3 +12,11 @@ void listeAttributsPresents(Space subspace, Space d, vector<Space> &result){
     for (j=0;j<d;j++) if (subspace_aux[j]) sortie.push_back(j+1);
     result.swap(sortie);
 }
+
+long fact(const int n)
+{
+    long res = 1;
+    for(int i = 2; i <= n; i++)
+        res*=i;
+    return res;
+}

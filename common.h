@@ -32,6 +32,8 @@ typedef vector<int> chain;
 
 void listeAttributsPresents(Space subspace, Space d, vector<Space> &result);
 
+long fact(const int n);
+
 struct pairhash {
 public:
   template <typename T, typename U>
