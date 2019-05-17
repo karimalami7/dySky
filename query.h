@@ -8,7 +8,7 @@
 class Query {
 
 public:
-	Preference preference;
+	vector<Preference> preference;
 
 	void generate_preference(Config* cfg);
 };
@@ -27,19 +27,26 @@ void Query::generate_preference(Config* cfg){
 
 	// repeat 1 and 2 until the preference reaches the wanted properties
 
-	int size_preference=0;
+	preference=vector<Preference>(cfg->dyDim_size);
 
-	this->preference.add_vertices(cfg->dyDim_val);
+	for (int i=0; i<cfg->dyDim_size; i++ ){
+	
+		int size_preference=0;
 
-	while (size_preference < cfg->dyDim_val*2) {
-		int v1=rand()%cfg->dyDim_val;
-		int v2=rand()%cfg->dyDim_val;
-		while (v1==v2){
-			v2=rand()%cfg->dyDim_val;
-		}  
-		if(this->preference.is_DAG(Order(v1,v2))){
-			this->preference.add_outedge(v1,v2);
-		}
-		size_preference++;
+		this->preference[i].add_vertices(cfg->dyDim_val);
+
+		while (size_preference < cfg->dyDim_val*2) {
+			int v1=rand()%cfg->dyDim_val;
+			int v2=rand()%cfg->dyDim_val;
+			while (v1==v2){
+				v2=rand()%cfg->dyDim_val;
+			}  
+			if(this->preference[i].is_DAG(Order(v1,v2))){
+				this->preference[i].add_outedge(v1,v2);
+			}
+			size_preference++;
+		}		
 	}
+
+
 }

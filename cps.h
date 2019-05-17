@@ -21,8 +21,8 @@ class Cps{
 public: 
 
 	vector<Point> to_dataset;
-	vector<int> po_dataset;
-	vector<Graph<int>> chains;
+	vector<vector<int>> po_dataset;
+	vector<vector<Graph<int>>> chains;
 	vector<id> skyline_result;
 
 	void decompose_preference(Graph<int> p, Config *cfg);
@@ -31,7 +31,7 @@ public:
 // decompose a partial order into chains
 void Cps::decompose_preference(Graph<int> p, Config *cfg){
 	cout <<"Cps::decompose_preference"<<endl;
-	Graph<int> transitive_preference;
+	Preference transitive_preference;
 
 	// compute transitive
 
@@ -159,6 +159,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg){
 	}
 	cout << "number colors: "<<number_colors<<endl;
 
+	vector<Graph<int>> chains_computed;
 	for (int color=0;color<number_colors;color++){
 		cout<< "chain for color: "<<color<<endl;
 		Graph<int> pre_chain;
@@ -172,50 +173,60 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg){
 		Graph<int> chain;
 		chain.compute_transitive_closure(pre_chain);
 		chain.print_edges();
-		chains.push_back(chain);
+		chains_computed.push_back(chain);
 	}
 
+	this->chains.push_back(chains_computed);
 }
 
 int Cps::compute_skyline(Config *cfg){
-	// encoding values into <number_colors> tuple
+	// encoding values in a dynamic attribute into a multi dimension tuple, eg: value 0 -> (1 2) 
 	cout << "Cps::compute_skyline"<<endl;
-	vector<vector<int>> values_encoding;
-	for (int i=0;i<cfg->dyDim_val;i++){
-		vector<int> encoding; 
-		for (int j=0;j<this->chains.size();j++){
-			auto it_graph=this->chains[j].out_edges.find(i);
-			if (it_graph!=this->chains[j].out_edges.end()){
-				encoding.push_back(cfg->dyDim_val-it_graph->second.size()-1);
+	vector<vector<vector<int>>> values_encoding(cfg->dyDim_size);
+	for (int k=0; k<cfg->dyDim_size; k++){
+		for (int i=0;i<cfg->dyDim_val;i++){
+			vector<int> encoding; 
+			for (int j=0;j<this->chains[k].size();j++){
+				auto it_graph=this->chains[k][j].out_edges.find(i);
+				if (it_graph!=this->chains[k][j].out_edges.end()){
+					encoding.push_back(cfg->dyDim_val-it_graph->second.size()-1);
+				}
+				else{
+					encoding.push_back(cfg->dyDim_val-1);
+				}
 			}
-			else{
-				encoding.push_back(cfg->dyDim_val-1);
-			}
-		}
-		values_encoding.push_back(encoding);
+			values_encoding[k].push_back(encoding);
+		}		
 	}
+
 
 	for (int i=0;i<cfg->dyDim_val;i++){
 		cout << "value: " << i << " encoding: "; 
-		for (int j=0;j<this->chains.size();j++){
-			cout << values_encoding[i][j] <<" ";
+		for (int j=0;j<this->chains[0].size();j++){
+			cout << values_encoding[0][i][j] <<" ";
 		}	
 		cout<<endl;
 	}
 
-	int All = (1<<cfg->statDim_size+chains.size())-1;
+	int card_virtual_dimensions=0;
+	for (auto c : this->chains) card_virtual_dimensions+=c.size();
+	int All = (1<<cfg->statDim_size+card_virtual_dimensions)-1;
 	vector<Space> full_Space;
-	listeAttributsPresents(All, cfg->statDim_size+chains.size(), full_Space);
+	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
 	vector<Point> temp_dataset;
 	for (int i=0; i< this->to_dataset.size(); i++){
-		Point p=(int*)malloc((cfg->statDim_size+chains.size()+1)*sizeof(int));
-			for (int j=0;j<=cfg->statDim_size;j++){
-				p[j]=to_dataset[i][j];
+		Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
+		for (int j=0;j<=cfg->statDim_size;j++){
+			p[j]=to_dataset[i][j];
+		}
+		int index_dim=0;
+		for (int j=0; j<values_encoding.size(); j++){
+			for (int k=0;k<this->chains[j].size();k++){
+				p[cfg->statDim_size+index_dim+1]=values_encoding[j][po_dataset[i][0]][k];
+				index_dim++;
 			}
-			for (int k=0;k<chains.size();k++){
-				p[cfg->statDim_size+k+1]=values_encoding[po_dataset[i]][k];
-			}
-			temp_dataset.push_back(p);
+		}
+		temp_dataset.push_back(p);
 	}
 
     skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
