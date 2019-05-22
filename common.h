@@ -43,4 +43,9 @@ public:
   }
 };
 
+struct order_tree{
+	unordered_map<Order, order_tree*, pairhash> order_child;
+	vector<id> ids;
+};
+
 #endif // DECLARATIONS_H_INCLUDED

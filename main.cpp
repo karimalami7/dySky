@@ -8,11 +8,11 @@
 
 #include "common.h"
 #include "config.h"
-#include "dySky.h"
 #include "graph.h"
 #include "preference.h"
 #include "query.h"
 #include "cps.h"
+#include "dySky.h"
 //#include "arg.h"
 //#include "tos.h"
 #include <omp.h>
@@ -31,20 +31,19 @@ void printUsage() {
 	printf( " -k: distinct values of static dimensions\n" );
 	printf( " -d: number of dynamic dimensions\n" );
 	printf( " -m: distinct values of dynamic dimensions\n" );		
-	printf( " -t: run with num_threads, e.g., 20 (default \"4\")\n" );
 	printf("Example: ");
-	printf("./dySky -n 100000 -s 8 -k 100 -d 2 -m 10 -t 8 \n\n");
+	printf("./dySky -n 100000 -s 8 -k 100 -d 2 -m 10 \n\n");
 }
 
 
 int main(int argc, char** argv) {
 
 	Config *cfg = new Config;
-	cfg->dataset_size=10000;
-	cfg->statDim_size=6;
+	cfg->dataset_size=1000;
+	cfg->statDim_size=4;
 	cfg->statDim_val=100;
-	cfg->dyDim_size=2;
-	cfg->dyDim_val=6;
+	cfg->dyDim_size=1;
+	cfg->dyDim_val=3;
 	cfg->verbose=false;
 
 	int c = 0;
@@ -170,54 +169,64 @@ int main(int argc, char** argv) {
 	q.generate_preference(cfg);
 	cout << "query preferences: "<<endl;
 	for (int i=0; i<cfg->dyDim_size; i++){
-		q.preference[i].print_edges();
 		q.preference[i].compute_transitive_closure(q.preference[i]);
+		q.preference[i].print_edges();
 	}
 
-	vector<Order> preference_orders;
-	unordered_map<id,unordered_set<id> > out_edges=q.preference[0].get_edges();
-	for (auto it=out_edges.begin(); it!=out_edges.end();it++){
-		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
-			preference_orders.push_back(Order((it->first),(*it2)));
-		}
+	vector<vector<Order>> preference_orders(cfg->dyDim_size);
+	for (int i=0; i<cfg->dyDim_size; i++){
+		for (auto it=q.preference[i].out_edges.begin(); it!=q.preference[i].out_edges.end();it++){
+			for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
+				preference_orders[i].push_back(Order((it->first),(*it2)));
+			}
+		}		
 	}
 
 	// skyline query answering by dySky using materialized 
 	cerr << "=====dySky: materialized views=====" <<endl;
-
+	cout << "=====dySky: materialized views=====" <<endl;
 	start_time2=omp_get_wtime();
-	cerr << "--> Result size: "<< dysky.compute_skyline(cfg, preference_orders).size()+dysky.always_sky.size()<<endl;
+	int size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
+	cerr << "--> Result size: "<< size_result<<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
 
 	cerr <<endl;
 
 	cerr << "=====dySky: virtual views=====" <<endl;
+	cout << "=====dySky: virtual views=====" <<endl;
 	// delete materialized views and compute only the views need for the issued query
 	dysky.skyline_view=vector<unordered_map<Order,vector<id>, pairhash>>(cfg->dyDim_size);
 	start_time=omp_get_wtime();
 	dysky.compute_views(cfg, preference_orders);
-	cerr << "--> Result size: "<< dysky.compute_skyline(cfg, preference_orders).size()+dysky.always_sky.size()<<endl;
+	size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
+	cerr << "--> Result size: "<< size_result<<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
 
 	cerr <<endl;
 
   	// skyline query answering by CPS
 	cerr << "=====CPS=====" <<endl;
+	cout << "=====CPS=====" <<endl;
 	// start for preference decompositon
 	start_time=omp_get_wtime();
 	//cerr << "---preference decompositon---"<<endl;
-	Cps cps;
+	Cps cps(cfg);
 	start_time2=omp_get_wtime();
-	for (auto preference : q.preference){
-		cps.decompose_preference(preference,cfg);		
+	for (int i=0; i<q.preference.size();i++){
+		cps.decompose_preference(q.preference[i],cfg,i);		
 	}
+	cps.encoding(cfg);
 	cerr<<"--> Time for preference decompositon: "<< omp_get_wtime()-start_time2 << endl;
 	//start for query answering
 	//cerr << "---query answering---"<<endl;
 	start_time2=omp_get_wtime();
 	cps.to_dataset=dysky.to_dataset;
 	cps.po_dataset=dysky.po_dataset;
-	cerr<< "--> Result size: "<<cps.compute_skyline(cfg)<<endl;
+	for (int i=0;i<cfg->dyDim_size;i++){
+		cps.compute_skyline_perDimension(cfg, i);	
+	}
+	size_result= cps.compute_skyline(cfg);
+	cerr<< "--> Result size: "<<size_result<<endl;
 	cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
 	cerr<< "--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
 

@@ -24,12 +24,22 @@ public:
 	vector<vector<int>> po_dataset;
 	vector<vector<Graph<int>>> chains;
 	vector<id> skyline_result;
+	vector<vector<vector<int>>> values_encoding;
 
-	void decompose_preference(Graph<int> p, Config *cfg);
+	void decompose_preference(Graph<int> p, Config *cfg, int i);
 	int compute_skyline(Config *cfg);
+	void encoding(Config *cfg);
+	int compute_skyline_perDimension(Config *cfg, int index_dim);
+	Cps(Config *cfg);
 };
+
+Cps::Cps(Config *cfg){
+	this->chains=vector<vector<Graph<int>>>(cfg->dyDim_size);
+	this->values_encoding=vector<vector<vector<int>>>(cfg->dyDim_size);
+}
+
 // decompose a partial order into chains
-void Cps::decompose_preference(Graph<int> p, Config *cfg){
+void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	cout <<"Cps::decompose_preference"<<endl;
 	Preference transitive_preference;
 
@@ -176,13 +186,14 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg){
 		chains_computed.push_back(chain);
 	}
 
-	this->chains.push_back(chains_computed);
+	this->chains[i]=chains_computed;
 }
 
-int Cps::compute_skyline(Config *cfg){
+
+void Cps::encoding(Config *cfg)
+{
 	// encoding values in a dynamic attribute into a multi dimension tuple, eg: value 0 -> (1 2) 
-	cout << "Cps::compute_skyline"<<endl;
-	vector<vector<vector<int>>> values_encoding(cfg->dyDim_size);
+	cout << "Cps::encoding"<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
 		for (int i=0;i<cfg->dyDim_val;i++){
 			vector<int> encoding; 
@@ -195,43 +206,74 @@ int Cps::compute_skyline(Config *cfg){
 					encoding.push_back(cfg->dyDim_val-1);
 				}
 			}
-			values_encoding[k].push_back(encoding);
+			this->values_encoding[k].push_back(encoding);
 		}		
 	}
-
-
-	for (int i=0;i<cfg->dyDim_val;i++){
-		cout << "value: " << i << " encoding: "; 
-		for (int j=0;j<this->chains[0].size();j++){
-			cout << values_encoding[0][i][j] <<" ";
-		}	
+	cout << "values_encoding size"<< values_encoding.size()<<endl;
+	for (int k=0; k<cfg->dyDim_size; k++){
+		for (int i=0;i<cfg->dyDim_val;i++){
+			cout << "value: " << i << " encoding: "; 
+			for (int j=0;j<this->chains[k].size();j++){
+				cout << this->values_encoding[k][i][j] <<" ";
+			}	
+			cout<<endl;
+		}
 		cout<<endl;
 	}
+}
+
+int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
+	
+	int All = (1<<cfg->statDim_size+this->chains[index_dim].size())-1;
+	cout << All << " = All"<<endl;
+	vector<Space> full_Space;
+	listeAttributsPresents(All, cfg->statDim_size+this->chains[index_dim].size(), full_Space);
+	vector<Point> temp_dataset(to_dataset.size());
+	for (int i=0; i< this->to_dataset.size(); i++){
+		Point p=(int*)malloc((cfg->statDim_size+this->chains[index_dim].size()+1)*sizeof(int));
+		for (int j=0;j<=cfg->statDim_size;j++){
+			p[j]=to_dataset[i][j];
+		}
+		for (int k=0;k<this->chains[index_dim].size();k++){
+			p[cfg->statDim_size+k+1]=values_encoding[index_dim][po_dataset[i][index_dim]][k];
+		}
+		temp_dataset[i]=p;
+	}
+	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+    cout << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
+   	cerr << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
+}
+
+int Cps::compute_skyline(Config *cfg){
 
 	int card_virtual_dimensions=0;
 	for (auto c : this->chains) card_virtual_dimensions+=c.size();
-	int All = (1<<cfg->statDim_size+card_virtual_dimensions)-1;
+	cout << card_virtual_dimensions << " virtual dimensions"<<endl;
+	int All = (1<<(cfg->statDim_size+card_virtual_dimensions))-1;
+	cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
-	vector<Point> temp_dataset;
+	vector<Point> temp_dataset(to_dataset.size());
 	for (int i=0; i< this->to_dataset.size(); i++){
 		Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
 		for (int j=0;j<=cfg->statDim_size;j++){
 			p[j]=to_dataset[i][j];
 		}
-		int index_dim=0;
-		for (int j=0; j<values_encoding.size(); j++){
+		int index_dim_virt=cfg->statDim_size+1;
+		for (int j=0; j<this->chains.size(); j++){
 			for (int k=0;k<this->chains[j].size();k++){
-				p[cfg->statDim_size+index_dim+1]=values_encoding[j][po_dataset[i][0]][k];
-				index_dim++;
+				p[index_dim_virt]=values_encoding[j][po_dataset[i][j]][k];
+				index_dim_virt++;
 			}
 		}
-		temp_dataset.push_back(p);
+		temp_dataset[i]=p;
 	}
 
-    skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
-    cout << "Skyline size: "<<skyline_result.size()<<endl;
-    return skyline_result.size();
+
+   	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+    cout << "Skyline size: "<<this->skyline_result.size()<<endl;
+    cerr << "Skyline size: "<<this->skyline_result.size()<<endl;
+    return this->skyline_result.size();
 }
 
 
