@@ -5,9 +5,8 @@
  *      Author: karim
  */
 
-
-#include "common.h"
 #include "config.h"
+#include "common.h"
 #include "graph.h"
 #include "preference.h"
 #include "query.h"
@@ -92,7 +91,10 @@ int main(int argc, char** argv) {
 	dysky.generate_to_data(cfg);
 	// generate partial order data
 	dysky.generate_po_data(cfg);
-	// compute skyline by BSkyTree on static order dimensions (Always Sky)
+	
+	vector<vector<Order>> all_orders(cfg->dyDim_size);
+	generate_all_orders(cfg,all_orders);
+		
 	double start_time=omp_get_wtime();
 	double start_time2=omp_get_wtime();
 	dysky.compute_always_skyline(cfg);
@@ -103,11 +105,8 @@ int main(int argc, char** argv) {
 	cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;
 	// compute views
 	start_time2=omp_get_wtime();
-	dysky.compute_views2(cfg);
+	dysky.compute_views(cfg, all_orders);
 	cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
-	// start_time2=omp_get_wtime();
-	// dysky.compute_views(cfg);
-	// cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 	dysky.print_dataset(cfg);
 	cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
 	//***********************************************
@@ -182,26 +181,21 @@ int main(int argc, char** argv) {
 	cout << "=====dySky: materialized views=====" <<endl;
 	start_time2=omp_get_wtime();
 	int size_result; 
-	size_result=dysky.compute_skyline2(cfg, q.preference_orders_cross).size();
+	size_result=dysky.compute_skyline(cfg, q.preference_orders_cross).size();
 	cerr << "--> Result size: "<< size_result<<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
-	// start_time2=omp_get_wtime();
-	// size_result=dysky.compute_skyline(cfg, q.preference_orders, q).size();
-	// cerr << "--> Result size: "<< size_result<<endl;
-	// cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
-	// cerr <<endl;
 
 	cerr << "=====dySky: virtual views=====" <<endl;
 	cout << "=====dySky: virtual views=====" <<endl;
 	// delete materialized views and compute only the views need for the issued query
-	// dysky.skyline_view=vector<unordered_map<Order,vector<id>, pairhash>>(cfg->dyDim_size);
-	// start_time=omp_get_wtime();
-	// dysky.compute_views(cfg, preference_orders);
-	// size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
-	// cerr << "--> Result size: "<< size_result<<endl;
-	// cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+	dysky.sky_view.clear();
+	start_time=omp_get_wtime();
+	dysky.compute_views(cfg, q.preference_orders);
+	size_result=dysky.compute_skyline(cfg, q.preference_orders_cross).size();
+	cerr << "--> Result size: "<< size_result<<endl;
+	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
 
-	// cerr <<endl;
+	cerr <<endl;
 
   	// skyline query answering by CPS
 	cerr << "=====CPS=====" <<endl;
@@ -221,9 +215,9 @@ int main(int argc, char** argv) {
 	start_time2=omp_get_wtime();
 	cps.to_dataset=dysky.to_dataset;
 	cps.po_dataset=dysky.po_dataset;
-	for (int i=0;i<cfg->dyDim_size;i++){
-		cps.compute_skyline_perDimension(cfg, i);	
-	}
+	// for (int i=0;i<cfg->dyDim_size;i++){
+	// 	cps.compute_skyline_perDimension(cfg, i);	
+	// }
 	size_result= cps.compute_skyline(cfg);
 	cerr<< "--> Result size: "<<size_result<<endl;
 	cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;

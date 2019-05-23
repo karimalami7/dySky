@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <list>
+#include "config.h"
 
 using namespace std;
 
@@ -47,5 +48,7 @@ struct order_tree{
 	unordered_map<Order, order_tree*, pairhash> order_child;
 	vector<id> ids;
 };
+
+void generate_all_orders(Config *cfg, vector<vector<Order>> &all_orders);
 
 #endif // DECLARATIONS_H_INCLUDED
