@@ -104,8 +104,10 @@ int main(int argc, char** argv) {
 	// compute views
 	start_time2=omp_get_wtime();
 	dysky.compute_views2(cfg);
-	dysky.compute_views(cfg);
 	cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
+	// start_time2=omp_get_wtime();
+	// dysky.compute_views(cfg);
+	// cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 	dysky.print_dataset(cfg);
 	cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
 	//***********************************************
@@ -168,30 +170,25 @@ int main(int argc, char** argv) {
 	//cerr << "Input preference: "<<endl;
 	Query q;
 	q.generate_preference(cfg);
+	q.graph_to_orderPairs(cfg);
+	q.cross_orders_over_dimensions(cfg);
 	cout << "query preferences: "<<endl;
 	for (int i=0; i<cfg->dyDim_size; i++){
-		q.preference[i].compute_transitive_closure(q.preference[i]);
 		q.preference[i].print_edges();
-	}
-
-	vector<vector<Order>> preference_orders(cfg->dyDim_size);
-	for (int i=0; i<cfg->dyDim_size; i++){
-		for (auto it=q.preference[i].out_edges.begin(); it!=q.preference[i].out_edges.end();it++){
-			for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
-				preference_orders[i].push_back(Order((it->first),(*it2)));
-			}
-		}		
-	}
+	}	
 
 	// skyline query answering by dySky using materialized 
 	cerr << "=====dySky: materialized views=====" <<endl;
 	cout << "=====dySky: materialized views=====" <<endl;
 	start_time2=omp_get_wtime();
-	int size_result=dysky.compute_skyline2(cfg, preference_orders).size();
+	int size_result; 
+	size_result=dysky.compute_skyline2(cfg, q.preference_orders_cross).size();
 	cerr << "--> Result size: "<< size_result<<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
-	size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
-	cerr << "--> Result size: "<< size_result<<endl;
+	// start_time2=omp_get_wtime();
+	// size_result=dysky.compute_skyline(cfg, q.preference_orders, q).size();
+	// cerr << "--> Result size: "<< size_result<<endl;
+	// cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
 	// cerr <<endl;
 
 	cerr << "=====dySky: virtual views=====" <<endl;

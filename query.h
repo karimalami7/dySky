@@ -8,9 +8,15 @@
 class Query {
 
 public:
-	vector<Preference> preference;
 
+	vector<Preference> preference;
+	vector<vector<Order>> preference_orders;
+	vector<vector<Order>> preference_orders_cross;
+	
 	void generate_preference(Config* cfg);
+	void graph_to_orderPairs(Config* cfg);
+	void cross_orders_over_dimensions(Config* cfg);
+	void recur_cross(Config* cfg, vector<Order> v, int niv);
 };
 
 void Query::generate_preference(Config* cfg){
@@ -45,8 +51,41 @@ void Query::generate_preference(Config* cfg){
 				this->preference[i].add_outedge(v1,v2);
 			}
 			size_preference++;
+		}
+		this->preference[i].compute_transitive_closure(this->preference[i]);
+	}
+}
+
+void Query::graph_to_orderPairs(Config* cfg){
+
+	this->preference_orders=vector<vector<Order>>(cfg->dyDim_size);
+	for (int i=0; i<cfg->dyDim_size; i++){
+		for (auto it=this->preference[i].out_edges.begin(); it!=this->preference[i].out_edges.end();it++){
+			for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
+				this->preference_orders[i].push_back(Order((it->first),(*it2)));
+			}
 		}		
 	}
+}
 
+void Query::recur_cross(Config* cfg, vector<Order> v, int niv){
+
+	for (int i=0; i<this->preference_orders[niv].size(); i++){
+		v.push_back(this->preference_orders[niv][i]);
+		if (niv<cfg->dyDim_size-1){
+			recur_cross(cfg, v, niv+1);
+			}
+		if (niv==cfg->dyDim_size-1){
+			this->preference_orders_cross.push_back(v);
+		}
+		v.pop_back();
+	}
+}
+
+void Query::cross_orders_over_dimensions(Config* cfg){
+	
+	vector<Order> v;
+	recur_cross(cfg, v, 0);
 
 }
+
