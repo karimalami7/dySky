@@ -103,6 +103,7 @@ int main(int argc, char** argv) {
 	cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;
 	// compute views
 	start_time2=omp_get_wtime();
+	dysky.compute_views2(cfg);
 	dysky.compute_views(cfg);
 	cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 	dysky.print_dataset(cfg);
@@ -155,7 +156,7 @@ int main(int argc, char** argv) {
   	//***********************************************
   	
   	cerr<<endl;
-
+  	cout<<endl;
 
   	/////////////////////////////////////////////////////////////////////////////
   	// skyline query answering
@@ -186,23 +187,24 @@ int main(int argc, char** argv) {
 	cerr << "=====dySky: materialized views=====" <<endl;
 	cout << "=====dySky: materialized views=====" <<endl;
 	start_time2=omp_get_wtime();
-	int size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
+	int size_result=dysky.compute_skyline2(cfg, preference_orders).size();
 	cerr << "--> Result size: "<< size_result<<endl;
 	cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
-
-	cerr <<endl;
+	size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
+	cerr << "--> Result size: "<< size_result<<endl;
+	// cerr <<endl;
 
 	cerr << "=====dySky: virtual views=====" <<endl;
 	cout << "=====dySky: virtual views=====" <<endl;
 	// delete materialized views and compute only the views need for the issued query
-	dysky.skyline_view=vector<unordered_map<Order,vector<id>, pairhash>>(cfg->dyDim_size);
-	start_time=omp_get_wtime();
-	dysky.compute_views(cfg, preference_orders);
-	size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
-	cerr << "--> Result size: "<< size_result<<endl;
-	cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+	// dysky.skyline_view=vector<unordered_map<Order,vector<id>, pairhash>>(cfg->dyDim_size);
+	// start_time=omp_get_wtime();
+	// dysky.compute_views(cfg, preference_orders);
+	// size_result=dysky.compute_skyline(cfg, preference_orders, q).size();
+	// cerr << "--> Result size: "<< size_result<<endl;
+	// cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
 
-	cerr <<endl;
+	// cerr <<endl;
 
   	// skyline query answering by CPS
 	cerr << "=====CPS=====" <<endl;
