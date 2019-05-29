@@ -32,3 +32,23 @@ void generate_all_orders(Config *cfg, vector<vector<Order>> &all_orders){
         }
     }
 }
+
+void printConfig(Config *cfg){
+    cerr << "Running Configuration:" <<endl;
+    cerr << "Dataset size: "<<cfg->dataset_size<<endl;
+    cerr << "Nb. Stat. Dimension: "<<cfg->statDim_size<<endl;
+    cerr << "Nb. Values Stat. Dim.: "<<cfg->statDim_val<<endl;
+    cerr << "Nb. Dyn. Dimension: : "<<cfg->dyDim_size<<endl;
+    cerr << "Nb. Values Dyn. Dim.: "<<cfg->dyDim_val<<endl;
+    cerr << "Workload size: "<<cfg->workload_size<<endl<<endl;
+
+    cout << "Running Configuration:" <<endl;
+    cout << "Dataset size: "<<cfg->dataset_size<<endl;
+    cout << "Nb. Stat. Dimension: "<<cfg->statDim_size<<endl;
+    cout << "Nb. Values Stat. Dim.: "<<cfg->statDim_val<<endl;
+    cout << "Nb. Dyn. Dimension: : "<<cfg->dyDim_size<<endl;
+    cout << "Nb. Values Dyn. Dim.: "<<cfg->dyDim_val<<endl;
+    cout << "Workload size: "<<cfg->workload_size<<endl<<endl;
+
+    cerr <<endl;
+}

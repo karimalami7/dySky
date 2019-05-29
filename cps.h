@@ -40,18 +40,18 @@ Cps::Cps(Config *cfg){
 
 // decompose a partial order into chains
 void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
-	cout <<"Cps::decompose_preference"<<endl;
+	////cout <<"Cps::decompose_preference"<<endl;
 	Preference transitive_preference;
 
 	// compute transitive
 
 	transitive_preference.compute_transitive_closure(p);
-	cout << "version transitive du graphe"<<endl;
-	transitive_preference.print_edges();
+	//////cout << "version transitive du graphe"<<endl;
+	//transitive_preference.print_edges();
 	// find incomparable pairs
 
 	vector<pair<id,id>> incomparable_pairs;
-	cout << "1 / Find incomparable pairs"<<endl;
+	////cout << "1 / Find incomparable pairs"<<endl;
 	// for all vertices i
 	for (int i=0; i<transitive_preference.vertices.size(); i++){
 		int value1=transitive_preference.vertices[i];
@@ -68,26 +68,26 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				
 				incomparable_pairs.push_back(pair<id,id>(value1,value2));
 				incomparable_pairs.push_back(pair<id,id>(value2,value1));
-				cout <<value1<<value2<<endl;
-				cout <<value2<<value1<<endl;	
+				////cout <<value1<<value2<<endl;
+				////cout <<value2<<value1<<endl;	
 			}
 					
 		}
 	}
 
 	// construct consistency graph
-	cout <<"2 / Construct Consistency graph"<<endl;
+	////cout <<"2 / Construct Consistency graph"<<endl;
 	Graph<int> consistency_graph;
 	consistency_graph.vertices=vector<int>(incomparable_pairs.size());
 	for (int i=0; i<incomparable_pairs.size(); i++){
-		cout <<"== Processing pair: "<< incomparable_pairs[i].first << " " << incomparable_pairs[i].second<<endl;
+		////cout <<"== Processing pair: "<< incomparable_pairs[i].first << " " << incomparable_pairs[i].second<<endl;
 		Graph<int> new_preference=p;
 		// add the missing order to the preference
 		new_preference.out_edges[incomparable_pairs[i].first].insert(incomparable_pairs[i].second);
 		// compute transitive order for the new preference
 		Graph<int> new_transitive_preference;
 		new_transitive_preference.compute_transitive_closure(new_preference);
-		// cout << "version transitive du graphe"<<endl;
+		// ////cout << "version transitive du graphe"<<endl;
 		// new_transitive_preference.print_edges();
 		// find induced missing order in the transitive
 		for (int j=0; j<incomparable_pairs.size(); j++){
@@ -95,7 +95,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				auto it_source=new_transitive_preference.out_edges.find(incomparable_pairs[j].first);
 				if (it_source!=new_transitive_preference.out_edges.end()){
 					if (it_source->second.find(incomparable_pairs[j].second)!=it_source->second.end()){
-						cout << "++++++++ induced pair: "<<incomparable_pairs[j].first <<" "<<incomparable_pairs[j].second<<endl;
+						////cout << "++++++++ induced pair: "<<incomparable_pairs[j].first <<" "<<incomparable_pairs[j].second<<endl;
 						consistency_graph.add_outedges(i,{j});
 					}
 				}
@@ -116,31 +116,31 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 		}
 	}
 	// print non induced pairs
-	cout <<endl<<"Non induced pairs: "<<endl;
+	////cout <<endl<<"Non induced pairs: "<<endl;
 	for (auto it_vector=non_induced_pairs.begin();it_vector!=non_induced_pairs.end();it_vector++){
-		cout << it_vector->first<<" "<< it_vector->second <<endl;
+		////cout << it_vector->first<<" "<< it_vector->second <<endl;
 	}
 	
 	// compute incompatibility graph
-	cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
+	////cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
 	Graph<int> incompatibility_graph;
 	incompatibility_graph.vertices=vector<int>(non_induced_pairs.size());
 	for (int i=0; i<non_induced_pairs.size(); i++){
-		cout <<"== Processing pair: "<< non_induced_pairs[i].first << " " << non_induced_pairs[i].second<<endl;
+		////cout <<"== Processing pair: "<< non_induced_pairs[i].first << " " << non_induced_pairs[i].second<<endl;
 		Graph<int> new_preference=p;
 		// add the missing order to the preference
 		new_preference.out_edges[non_induced_pairs[i].first].insert(non_induced_pairs[i].second);
 		// compute transitive order for the new preference
 		Graph<int> new_transitive_preference;
 		new_transitive_preference.compute_transitive_closure(new_preference);
-		// cout << "version transitive du graphe"<<endl;
+		// ////cout << "version transitive du graphe"<<endl;
 		// new_transitive_preference.print_edges();
 		for (int j=0; j<non_induced_pairs.size(); j++){
 			if(i!=j){
 				auto it_source=new_transitive_preference.out_edges.find(non_induced_pairs[j].second);
 				if (it_source!=new_transitive_preference.out_edges.end()){
 					if (it_source->second.find(non_induced_pairs[j].first)!=it_source->second.end()){
-						cout << "++++++++ incompatible pair: "<<non_induced_pairs[j].first <<" "<<non_induced_pairs[j].second<<endl;
+						////cout << "++++++++ incompatible pair: "<<non_induced_pairs[j].first <<" "<<non_induced_pairs[j].second<<endl;
 						incompatibility_graph.add_outedges(i,{j});
 					}
 				}
@@ -148,16 +148,16 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 		}
 	}	
 	// print incompatibility graph
-	// cout << "incompatibility graph"<<endl;
+	// ////cout << "incompatibility graph"<<endl;
 	// incompatibility_graph.print_edges();
 
 	// color incompatibility graph
-	cout <<endl<<"4 / Color Incompatibility graph"<<endl;
+	////cout <<endl<<"4 / Color Incompatibility graph"<<endl;
 	incompatibility_graph.greedyColoring();
 
 	for(int i=0;i<incompatibility_graph.vertices.size();i++){
-		cout << "pair: " <<non_induced_pairs[i].first<<" "<< non_induced_pairs[i].second<<" --> color: "
-			<<incompatibility_graph.vertex_color[i]<<endl;
+		////cout << "pair: " <<non_induced_pairs[i].first<<" "<< non_induced_pairs[i].second<<" --> color: "
+			//<<incompatibility_graph.vertex_color[i]<<endl;
 	}
 
 	//create chains
@@ -167,11 +167,11 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 			number_colors=incompatibility_graph.vertex_color[i]+1;
 		}
 	}
-	cout << "number colors: "<<number_colors<<endl;
+	////cout << "number colors: "<<number_colors<<endl;
 
 	vector<Graph<int>> chains_computed;
 	for (int color=0;color<number_colors;color++){
-		cout<< "chain for color: "<<color<<endl;
+		////cout<< "chain for color: "<<color<<endl;
 		Graph<int> pre_chain;
 		pre_chain=p;
 		for (int j=0;j<incompatibility_graph.vertex_color.size();j++){
@@ -182,7 +182,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 		}
 		Graph<int> chain;
 		chain.compute_transitive_closure(pre_chain);
-		chain.print_edges();
+		//chain.print_edges();
 		chains_computed.push_back(chain);
 	}
 
@@ -193,7 +193,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 void Cps::encoding(Config *cfg)
 {
 	// encoding values in a dynamic attribute into a multi dimension tuple, eg: value 0 -> (1 2) 
-	cout << "Cps::encoding"<<endl;
+	////cout << "Cps::encoding"<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
 		for (int i=0;i<cfg->dyDim_val;i++){
 			vector<int> encoding; 
@@ -209,23 +209,23 @@ void Cps::encoding(Config *cfg)
 			this->values_encoding[k].push_back(encoding);
 		}		
 	}
-	cout << "values_encoding size"<< values_encoding.size()<<endl;
+	////cout << "values_encoding size"<< values_encoding.size()<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
 		for (int i=0;i<cfg->dyDim_val;i++){
-			cout << "value: " << i << " encoding: "; 
+			////cout << "value: " << i << " encoding: "; 
 			for (int j=0;j<this->chains[k].size();j++){
-				cout << this->values_encoding[k][i][j] <<" ";
+				////cout << this->values_encoding[k][i][j] <<" ";
 			}	
-			cout<<endl;
+			////cout<<endl;
 		}
-		cout<<endl;
+		////cout<<endl;
 	}
 }
 
 int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
 	
 	int All = (1<<cfg->statDim_size+this->chains[index_dim].size())-1;
-	cout << All << " = All"<<endl;
+	////cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+this->chains[index_dim].size(), full_Space);
 	vector<Point> temp_dataset(to_dataset.size());
@@ -240,7 +240,7 @@ int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
 		temp_dataset[i]=p;
 	}
 	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
-    cout << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
+    ////cout << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
    	cerr << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
 }
 
@@ -248,9 +248,9 @@ int Cps::compute_skyline(Config *cfg){
 
 	int card_virtual_dimensions=0;
 	for (auto c : this->chains) card_virtual_dimensions+=c.size();
-	cout << card_virtual_dimensions << " virtual dimensions"<<endl;
+	////cout << card_virtual_dimensions << " virtual dimensions"<<endl;
 	int All = (1<<(cfg->statDim_size+card_virtual_dimensions))-1;
-	cout << All << " = All"<<endl;
+	////cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
 	vector<Point> temp_dataset(to_dataset.size());
@@ -269,10 +269,8 @@ int Cps::compute_skyline(Config *cfg){
 		temp_dataset[i]=p;
 	}
 
-
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
-    cout << "Skyline size: "<<this->skyline_result.size()<<endl;
-    cerr << "Skyline size: "<<this->skyline_result.size()<<endl;
+    ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
     return this->skyline_result.size();
 }
 

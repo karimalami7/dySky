@@ -49,6 +49,15 @@ struct order_tree{
 	vector<id> ids;
 };
 
+struct chain_tree{
+	map<chain, chain_tree*> chain_child;
+	vector<id> ids;
+};
+
+
+
 void generate_all_orders(Config *cfg, vector<vector<Order>> &all_orders);
+
+void printConfig(Config *cfg);
 
 #endif // DECLARATIONS_H_INCLUDED

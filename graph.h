@@ -62,15 +62,15 @@ unordered_map<T,unordered_set<T> > Graph<T>::get_edges(){
 }
 template <typename T>
 void Graph<T>::print_vertices(){
-	cout <<"vertices: ";
+	//cout <<"vertices: ";
 	for (int i=0; i<this->vertices.size(); i++){
-		cout<<this->vertices[i]<<" ";
+		//cout<<this->vertices[i]<<" ";
 	}
-	cout << endl;
+	//cout << endl;
 }
 template <typename T>
 void Graph<T>::print_edges(){
-	cout <<"edges: "<<endl;
+	//cout <<"edges: "<<endl;
 	for (auto it=this->out_edges.begin(); it!=this->out_edges.end(); it++){
 		
 		cout<<"source: "<<it->first<< endl;
@@ -79,7 +79,7 @@ void Graph<T>::print_edges(){
 			cout<<"-->: "<<(*it2)<< endl;
 		}
 	}
-	cout << endl;
+	//cout << endl;
 }
 
 void recursive_add(unordered_map<int,unordered_set<int> > &preference_in, id v_src, unordered_set<int> &vertices_dest){
@@ -165,7 +165,7 @@ void Graph<T>::greedyColoring()
   
     // print the result 
     for (int u = 0; u < V; u++){ 
-        //cout << "Vertex " << u << " --->  Color "<< result[u] << endl; 
+        ////cout << "Vertex " << u << " --->  Color "<< result[u] << endl; 
         this->vertex_color.push_back(result[u]);
     }
 } 

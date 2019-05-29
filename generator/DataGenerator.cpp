@@ -6,7 +6,7 @@ using namespace std;
 
 void GenerateIndependent(int nNumObj, int nNumAtt, bool bDistinct, vector<double*> &result)
 {
-	//cout<<"je rentre\n";
+	////cout<<"je rentre\n";
 	vector<double*> TotalData;
 
 	map<double, double>* AttValueMap = new map<double, double>[nNumAtt+1];

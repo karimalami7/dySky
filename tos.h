@@ -19,45 +19,109 @@ class Tos{
 public:
 
 	vector<Point> to_dataset;
-	vector<int> po_dataset;
-	map<chain, vector<id>> cache;
+	vector<vector<int>> po_dataset;
+	map<chain, chain_tree*> sky_view;
+	vector<vector<chain>> chains_vec_cross;
 
-	vector<id> compute_skyline(vector<Graph<int>> chains, Config *cfg);
+	void compute_views(Config *cfg);
+	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node);
+	vector<id> compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg);
 
-	void chain_graph_to_vec_representation(vector<Graph<int>> chains, Config *cfg, vector<chain> &chains_vec);
-
+	void chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg);
+	void chain_cross(Config* cfg, vector<chain> v, vector<vector<chain>> chains_vec, int niv);
 };
 
-vector<id> Tos::compute_skyline(vector<Graph<int>> chains, Config *cfg){
+void Tos::compute_views(Config *cfg){
+	//cout << "Tos::compute_views"<<endl;
+  	vector<Preference> preference_stack;
+  	this->compute_view_recursively(cfg, 0, preference_stack, this->sky_view);
+}
 
-	cout << "Tos::compute_skyline"<<endl;
-	
-	vector<chain> chains_vec;
-	
-	this->chain_graph_to_vec_representation(chains, cfg, chains_vec);
+void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node){
+	//cout << "Tos::compute_view_recursively, niveau "<< niveau<<endl;
+	chain tos_values(cfg->dyDim_val);
+  	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
+  	do {
+  	  	Preference p_to;
+		p_to.add_vertices(cfg->dyDim_val);
+		for (id source=0;source<cfg->dyDim_val-1;source++){
+			unordered_set<id> v_dest;
+			v_dest.insert(tos_values[source+1]);
+			p_to.add_edges(tos_values[source],v_dest);
+		}
+		view_node[tos_values]=new chain_tree;;
+		preference_stack.push_back(p_to);
+		if (niveau<cfg->dyDim_size -1){
+			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[tos_values]->chain_child);
+		}
+		else if (niveau==cfg->dyDim_size-1){
+			Cps *cps_tos = new Cps(cfg);
+			for (int i=0;i<cfg->dyDim_size;i++){
+				cps_tos->decompose_preference(preference_stack[i],cfg,i);	
+			}
+			cps_tos->encoding(cfg);
+			cps_tos->to_dataset=this->to_dataset;
+			cps_tos->po_dataset=this->po_dataset;
+			cps_tos->compute_skyline(cfg);
+		  	view_node[tos_values]->ids=cps_tos->skyline_result;
+		  	sort(view_node[tos_values]->ids.begin(),view_node[tos_values]->ids.end());
+		}	
+		preference_stack.pop_back();
+  	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+}
 
+
+
+vector<id> Tos::compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg){
+
+	//cout << "Tos::compute_skyline"<<endl;
+	
+	this->chain_graph_to_vec_representation(chains, cfg);
+
+	//cout << "chains_vec_cross size: "<<this->chains_vec_cross.size()<<endl;
+	for (int i=0;i<this->chains_vec_cross.size();i++){
+		//cout << "croisement " <<i<<endl;
+		for (int j=0;j<this->chains_vec_cross[i].size();j++){
+			for(auto value: this->chains_vec_cross[i][j]){
+				//cout << value <<" ";
+			}
+			//cout<<endl;	
+		}
+		//cout<<endl;
+	}
 	//***************************************************
 	// union the skyline of the chains
 	vector<id> result;
-	if (chains_vec.size()==1){
-		result=this->cache[chains_vec[0]];
-	}
-	else{
 
-		result=this->cache[chains_vec[0]];
-		for (int i=1; i<chains_vec.size(); i++){
-			sort(result.begin(),result.end());
-			sort(cache[chains_vec[i]].begin(), cache[chains_vec[i]].end());
-			std::vector<id> v(result.size()+cache[chains_vec[i]].size());   
-  			std::vector<id>::iterator it;
-  			it=std::set_union(result.begin(), result.end(), this->cache[chains_vec[i]].begin(),
-  				this->cache[chains_vec[i]].end(), v.begin());                        
-  			v.resize(it-v.begin());   
-  			result=v;         
+	for (int i=0;i<this->chains_vec_cross.size();i++){
+		chain_tree *ct=this->sky_view[this->chains_vec_cross[i][0]];
+		int j=1;
+		while (j<cfg->dyDim_size){
+
+			ct=ct->chain_child[this->chains_vec_cross[i][j]];
+			j++;
+		}
+		if(i==0){
+			result=ct->ids;
+
+		}
+		else{
+			//cout <<"ids"<<endl;
+			for (int i=0; i<ct->ids.size();i++){
+				//cout << ct->ids[i] <<endl;
+			}
+			std::vector<id> v(result.size()+ct->ids.size());   
+		  	std::vector<id>::iterator it;
+		  	it=std::set_union(result.begin(), result.end(), ct->ids.begin(), ct->ids.end(), v.begin());                        
+		  	v.resize(it-v.begin());   
+		  	result=v; 			
+		}
+		//cout <<"result"<<endl;
+		for (int i=0; i<result.size();i++){
+			//cout << result[i] <<endl;
 		}
 	}
 	return result;
-
 }
 
 
@@ -68,37 +132,72 @@ vector<id> Tos::compute_skyline(vector<Graph<int>> chains, Config *cfg){
 
 
 
-void Tos::chain_graph_to_vec_representation(vector<Graph<int>> chains, Config *cfg, vector<chain> &chains_vec){
+void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg){
 		
-	cout << "Tos::chain_graph_to_vec_representation"<<endl;
+	//cout << "Tos::chain_graph_to_vec_representation"<<endl;
+
+	// for (int i=0;i<this->chains.size();i++){
+	// 	for (int j=0;j<this->chains[i].size();j++){
+	// 		for(auto value: this->chains[i][j]){
+	// 			//cout << value <<" ";
+	// 		}
+	// 		//cout<<endl;	
+	// 	}
+	// 	//cout<<endl;
+	// }
+
 
 	//**************************************************
 	// transforms chains from graph representation to vector representation
-	for (Graph<int> g : chains){
-		g.print_edges();
-		chain c;
-		int num_childs=cfg->dyDim_val;
-		vector<int> vertices=g.vertices;
-		vector<int> vertices_added;
-		while(num_childs>0){
-			for (auto it : g.out_edges){
-				if (it.second.size()==num_childs){
-					c.push_back(it.first);
-					vertices_added.push_back(it.first);
+	vector<vector<chain>> chains_vec(cfg->dyDim_size);
+	for (int i=0;i<cfg->dyDim_size;i++){
+		//cout << "Dimension: "<<i<<endl;
+		for (Graph<int> g : chains[i]){
+			//g.print_edges();
+			chain c;
+			int num_childs=cfg->dyDim_val;
+			vector<int> vertices=g.vertices;
+			vector<int> vertices_added;
+			while(num_childs>0){
+				for (auto it : g.out_edges){
+					if (it.second.size()==num_childs){
+						c.push_back(it.first);
+						vertices_added.push_back(it.first);
+					}
 				}
-			}
-			num_childs--;
-		}	
-		sort(vertices.begin(), vertices.end());
-		sort(vertices_added.begin(), vertices_added.end());
-		std::vector<int> v(vertices.size()); 
-		std::vector<int>::iterator it;
-		it=std::set_difference (vertices.begin(), vertices.end(), vertices_added.begin(), vertices_added.end(), v.begin());
-		v.resize(it-v.begin());
-		c.push_back(v[0]);
-		for (int s : c) cout << s << " ";
-		cout <<endl;
-		chains_vec.push_back(c);
+				num_childs--;
+			}	
+			sort(vertices.begin(), vertices.end());
+			sort(vertices_added.begin(), vertices_added.end());
+			std::vector<int> v(vertices.size()); 
+			std::vector<int>::iterator it;
+			it=std::set_difference (vertices.begin(), vertices.end(), vertices_added.begin(), vertices_added.end(), v.begin());
+			v.resize(it-v.begin());
+			c.push_back(v[0]);
+			for (int s : c) //cout << s << " ";
+			//cout <<endl;
+			chains_vec[i].push_back(c);
+		}		
 	}
 	//***************************************************
+
+	vector<chain> v;
+	Tos::chain_cross(cfg, v, chains_vec, 0);
+
+}
+
+
+void Tos::chain_cross(Config* cfg, vector<chain> v, vector<vector<chain>> chains_vec, int niv){
+
+	for (int i=0; i<chains_vec[niv].size(); i++){
+		v.push_back(chains_vec[niv][i]);
+		if (niv<cfg->dyDim_size-1){
+			chain_cross(cfg, v, chains_vec, niv+1);
+			}
+		if (niv==cfg->dyDim_size-1){
+
+			this->chains_vec_cross.push_back(v);
+		}
+		v.pop_back();
+	}
 }

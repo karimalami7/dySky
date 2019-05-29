@@ -59,13 +59,13 @@ void dySky::generate_po_data(Config* cfg){
 }
 
 void dySky::compute_always_skyline(Config* cfg){
-	cout << "dySky::compute_always_skyline"<<endl;
+	//cout << "dySky::compute_always_skyline"<<endl;
 
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
     this->always_sky=subspaceSkylineSize_TREE(full_Space, to_dataset);
-    cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
+    //cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
     // cerr << "::" <<endl;
     // for (int k=0; k< this->always_sky.size(); k++) cerr << this->always_sky[k]<<endl; 
 	// int All = (1<<cfg->statDim_size+1)-1;
@@ -82,7 +82,7 @@ void dySky::compute_always_skyline(Config* cfg){
 	// }
 	// // gooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooood      results
  //    this->always_sky=subspaceSkylineSize_TREE(full_Space, temp_dataset);
- //    cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
+ //    //cout << "Always Skyline size: "<<this->always_sky.size()<<endl;
  //    cerr << "::" <<endl;
  //    for (int k=0; k< this->always_sky.size(); k++) cerr << this->always_sky[k]<<endl; 
 
@@ -121,7 +121,7 @@ void dySky::print_dataset (vector<Point> data, string name, int d){
 }
 
 int dySky::compute_candidates(Config* cfg){
-	cout << "dySky::compute_candidates"<<endl;
+	//cout << "dySky::compute_candidates"<<endl;
 
 	// cluster dataset depending on the value in the po dimenion
 	map<vector<int>, vector<Point>> partitions;
@@ -155,7 +155,7 @@ int dySky::compute_candidates(Config* cfg){
   		sky_union_candidates.begin(),sky_union_candidates.end(), never_sky.begin()); // diff between all ids and dom objects
   	never_sky.resize(it_never-never_sky.begin());  
     this->never_sky.swap(never_sky);
-    cout <<"Never Skyline size: "<< this->never_sky.size()<<endl;
+    //cout <<"Never Skyline size: "<< this->never_sky.size()<<endl;
 
     //  candidates = sky_union_candidates minus sky
     std::vector<int> candidates(cfg->dataset_size);  //filled with zeros
@@ -165,9 +165,9 @@ int dySky::compute_candidates(Config* cfg){
   		this->always_sky.begin(),this->always_sky.end(), candidates.begin()); // diff between all ids and dom objects
   	candidates.resize(it_candidates-candidates.begin());  
     this->candidates.swap(candidates);
-    cout << "Candidate set size: "<<this->candidates.size()<<endl;
+    //cout << "Candidate set size: "<<this->candidates.size()<<endl;
 
- 	cout << "Totally, there is "<<this->candidates.size() + this->never_sky.size() + this->always_sky.size()<<" objects"<<endl; 
+ 	//cout << "Totally, there is "<<this->candidates.size() + this->never_sky.size() + this->always_sky.size()<<" objects"<<endl; 
 
  	// string const nomFichier1("always_sky_2.csv");
   //   ofstream monFlux1(nomFichier1.c_str());
@@ -183,7 +183,7 @@ int dySky::compute_candidates(Config* cfg){
 }
 
 void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
-	cout << "dySky::compute_views" <<endl;
+	//cout << "dySky::compute_views" <<endl;
 
 	vector<id> aSky_union_candidates;
 	aSky_union_candidates.insert(aSky_union_candidates.end(), this->always_sky.begin(), this->always_sky.end());
@@ -204,15 +204,15 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
 	
 	print_dataset(aSky_union_candidates_tuples, " compute_view2 data", cfg->statDim_size+cfg->dyDim_size);
 
-	vector<Order> orders;
-	cout << "-->dySky::compute_view_recursively"<<endl;
-	compute_view_recursively(cfg, 0, aSky_union_candidates_tuples, orders, this->sky_view, preference_orders);
+	vector<Order> orders_stack;
+	//cout << "-->dySky::compute_view_recursively"<<endl;
+	compute_view_recursively(cfg, 0, aSky_union_candidates_tuples, orders_stack, this->sky_view, preference_orders);
 
 	// int views_total_storage=0;
 	// for (auto it=this->sky_view.begin();it!=this->sky_view.end();it++){
 	// 	views_total_storage+=(it->second)->ids.size();
 	// }
-	// cout << "Views total storage: " << views_total_storage <<endl;
+	// //cout << "Views total storage: " << views_total_storage <<endl;
 
 }
 
@@ -246,7 +246,7 @@ void dySky::compute_view_recursively(Config* cfg, int niveau, vector<Point> &dat
 			//si c'est pas la dernière dimension 				
 			if (niveau<cfg->dyDim_size -1){
 				sky_view[Order(best_value,worst_value)]=new order_tree;;
-				dySky::compute_view_recursively(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
+				this->compute_view_recursively(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
 			}
 
 			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -297,14 +297,14 @@ void dySky::compute_view_recursively(Config* cfg, int niveau, vector<Point> &dat
 
 
 vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference){
-	cout << "dySky::compute_skyline" <<endl;
+	//cout << "dySky::compute_skyline" <<endl;
 	// Sky(T) = Always_sky Union ( Intersec(Views concerned ) ) 
 	
 	for (int i=0;i<preference.size();i++){
 		for (int j=0;j<preference[i].size();j++){
-			cout << preference[i][j].first<< ":"<< preference[i][j].second <<endl;
+			//cout << preference[i][j].first<< ":"<< preference[i][j].second <<endl;
 		}
-		cout<<endl;
+		//cout<<endl;
 	}
 
 	vector<id> result;

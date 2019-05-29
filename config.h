@@ -16,6 +16,7 @@ typedef struct Config {
 	int statDim_val;
 	int dyDim_size;
 	int dyDim_val;
+	int workload_size;
 	bool verbose;
 } Config;
 

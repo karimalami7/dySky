@@ -46,7 +46,7 @@ void readTextPointList(int n, int d, string strFileName, vector<Point> &result){
 			}
 		}
 
-	} else cout << "There is no File." << endl;
+	} else //cout << "There is no File." << endl;
 	inFile.close();
 	result.swap(PointList);
 }
@@ -92,10 +92,10 @@ void afficheDonnees(vector<Point> donnees, Space d){
     int i, n=donnees.size();
     Space j;
     for (i=0;i<n;i++){
-        //cout<<"t"<<donnees[i][0]+1<<": ";
+        ////cout<<"t"<<donnees[i][0]+1<<": ";
         for (j=1;j<=d;j++){
-            cout<<donnees[i][j]<<" ";
+            //cout<<donnees[i][j]<<" ";
         }
-        cout<<endl;
+        //cout<<endl;
     }
 }
