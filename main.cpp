@@ -85,6 +85,13 @@ int main(int argc, char** argv) {
     string const fileName("logs");
     ofstream myFile(fileName);
 
+    bool selectedMethod[]={
+    	false, //dysky_m
+    	true, //dysky_v
+    	true, //cps
+    	true, //tos
+    	false, //arg
+    };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
   	//
@@ -92,65 +99,66 @@ int main(int argc, char** argv) {
 	cerr << "---PREPROCESSING---"<<endl<<endl;
 	//cout << "---PREPROCESSING---"<<endl<<endl;
 
-	//**********************************************
-	// dySky
-	cerr << "=====dySky=====" <<endl;
 	// start for pre processing
-	
 	dySky dysky_m(cfg);
 	// generate total order data
 	dysky_m.generate_to_data(cfg);
 	// generate partial order data
 	dysky_m.generate_po_data(cfg);
-	
 	vector<vector<Order>> all_orders(cfg->dyDim_size);
 	generate_all_orders(cfg,all_orders);
-		
-	double start_time=omp_get_wtime();
-	double start_time2=omp_get_wtime();
-	dysky_m.compute_always_skyline(cfg);
-	cerr<<"--> Time for compute_always_skyline: "<< omp_get_wtime()-start_time2 << endl;
-	// compute candidates 
-	start_time2=omp_get_wtime();
-	dysky_m.compute_candidates(cfg);
-	cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;
-	// compute views
-	start_time2=omp_get_wtime();
-	dysky_m.compute_views(cfg, all_orders);
-	cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
-	dysky_m.print_dataset(cfg);
-	cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
+	double start_time;
+	double start_time2;
+
+	//**********************************************
+	// dySky
+	if (selectedMethod[0]==true){
+		cerr << "=====dySky=====" <<endl;		
+		start_time=omp_get_wtime();
+		start_time2=omp_get_wtime();
+		dysky_m.compute_always_skyline(cfg);
+		cerr<<"--> Time for compute_always_skyline: "<< omp_get_wtime()-start_time2 << endl;
+		// compute candidates 
+		start_time2=omp_get_wtime();
+		dysky_m.compute_candidates(cfg);
+		cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;
+		// compute views
+		start_time2=omp_get_wtime();
+		dysky_m.compute_views(cfg, all_orders);
+		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
+		dysky_m.print_dataset(cfg);
+		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
+	}
 	//***********************************************
-	cout << "dysky completed" <<endl;
+
 	cerr<<endl;
 
 	//***********************************************
 	//ARG: compute skyline view wrt some partial order
-
-	cerr << "=====Arg=====" <<endl;
-	start_time=omp_get_wtime();
 	Arg arg;
-	arg.to_dataset=dysky_m.to_dataset;
-	arg.po_dataset=dysky_m.po_dataset;
-	arg.compute_views(cfg);
-
-	cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
+	if(selectedMethod[4]==true){
+		cerr << "=====Arg=====" <<endl;
+		start_time=omp_get_wtime();
+		arg.to_dataset=dysky_m.to_dataset;
+		arg.po_dataset=dysky_m.po_dataset;
+		arg.compute_views(cfg);
+		cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
+	}
 	//************************************************
 
 	cerr<<endl;
 	
 	//************************************************
 	// TOS: compute a skyline view wrt all possible total orders
-
-	cerr << "=====TOS=====" <<endl;
-	start_time=omp_get_wtime();
-
-  	Tos tos;
-  	tos.to_dataset=dysky_m.to_dataset;
-  	tos.po_dataset=dysky_m.po_dataset;
-  	tos.compute_views(cfg);
-
-  	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
+	Tos tos;
+	if(selectedMethod[3]){
+		cerr << "=====TOS=====" <<endl;
+		start_time=omp_get_wtime();
+	  	tos.to_dataset=dysky_m.to_dataset;
+	  	tos.po_dataset=dysky_m.po_dataset;
+	  	tos.compute_views(cfg);
+	  	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
+  	}
   	//***********************************************
   	
   	cerr<<endl;
@@ -172,100 +180,117 @@ int main(int argc, char** argv) {
 		//cout <<"Query n° "<<q<<endl<<endl;
 
 		vector <int> results; // to compare results of all methods
+		int size_result; 
 
 		workload[q].generate_preference(cfg);
 		workload[q].graph_to_orderPairs(cfg);
 		workload[q].cross_orders_over_dimensions(cfg);
 		//cout << "query preferences: "<<endl;
-		// for (int i=0; i<cfg->dyDim_size; i++){
-		// 	workload[q].preference[i].print_edges();
-		// }	
+		for (int i=0; i<cfg->dyDim_size; i++){
+			//workload[q].preference[i].print_edges();
+			//cout <<endl;
+		}	
 
-		// skyline query answering by dySky using materialized 
-		cerr << "=====dySky: materialized views=====" <<endl;
-		//cout << "=====dySky: materialized views=====" <<endl;
-		start_time2=omp_get_wtime();
-		int size_result; 
-		size_result=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
-		results.push_back(size_result);
-		cerr << "--> Result size: "<< size_result<<endl;
-		cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
-
-		cerr << "=====dySky: virtual views=====" <<endl;
-		//cout << "=====dySky: virtual views=====" <<endl;
-		// delete materialized views and compute only the views need for the issued query
-		dySky dysky_v(cfg);
-		dysky_v.to_dataset=dysky_m.to_dataset;
-		dysky_v.po_dataset=dysky_m.po_dataset;
-		start_time=omp_get_wtime();
-		dysky_v.compute_always_skyline(cfg);
-		dysky_v.compute_candidates(cfg);
-		dysky_v.compute_views(cfg, workload[q].preference_orders);
-		size_result=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
-		results.push_back(size_result);
-		cerr << "--> Result size: "<< size_result<<endl;
-		cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+		// skyline query answering by dySky using materialized views
+		if(selectedMethod[0]==true){
+			cerr << "=====dySky: materialized views=====" <<endl;
+			//cout << "=====dySky: materialized views=====" <<endl;
+			start_time2=omp_get_wtime();
+			
+			size_result=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
+			results.push_back(size_result);
+			cerr << "--> Result size: "<< size_result<<endl;
+			cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
+		}
 
 		cerr <<endl;
+
+		// skyline query answering by dySky using virtual views
+		if(selectedMethod[1]==true){
+			cerr << "=====dySky: virtual views=====" <<endl;
+			//cout << "=====dySky: virtual views=====" <<endl;
+			dySky dysky_v(cfg);
+			dysky_v.to_dataset=dysky_m.to_dataset;
+			dysky_v.po_dataset=dysky_m.po_dataset;
+			start_time=omp_get_wtime();
+			dysky_v.compute_always_skyline(cfg);
+			dysky_v.compute_candidates(cfg);
+			dysky_v.compute_views(cfg, workload[q].preference_orders);
+			size_result=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
+			results.push_back(size_result);
+			cerr << "--> Result size: "<< size_result<<endl;
+			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+		}
+
+		
 
 	  	// skyline query answering by CPS
-		cerr << "=====CPS=====" <<endl;
-		//cout << "=====CPS=====" <<endl;
-		// start for preference decompositon
-		start_time=omp_get_wtime();
-		//cerr << "---preference decompositon---"<<endl;
-		Cps cps(cfg);
-		start_time2=omp_get_wtime();
-		for (int i=0; i<workload[q].preference.size();i++){
-			cps.decompose_preference(workload[q].preference[i],cfg,i);		
+	  	if(selectedMethod[2]==true){
+			cerr << "=====CPS=====" <<endl;
+			//cout << "=====CPS=====" <<endl;
+			// start for preference decompositon
+			start_time=omp_get_wtime();
+			//cerr << "---preference decompositon---"<<endl;
+			Cps cps(cfg);
+			start_time2=omp_get_wtime();
+			for (int i=0; i<workload[q].preference.size();i++){
+				cps.decompose_preference(workload[q].preference[i],cfg,i);		
+			}
+			cps.encoding(cfg);
+			cerr<<"--> Time for preference decompositon: "<< omp_get_wtime()-start_time2 << endl;
+			//start for query answering
+			//cerr << "---query answering---"<<endl;
+			start_time2=omp_get_wtime();
+			cps.to_dataset=dysky_m.to_dataset;
+			cps.po_dataset=dysky_m.po_dataset;
+			// for (int i=0;i<cfg->dyDim_size;i++){
+			// 	cps.compute_skyline_perDimension(cfg, i);	
+			// }
+			size_result= cps.compute_skyline(cfg);
+			results.push_back(size_result);
+			cerr<< "--> Result size: "<<size_result<<endl;
+			cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
+			cerr<< "--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
 		}
-		cps.encoding(cfg);
-		cerr<<"--> Time for preference decompositon: "<< omp_get_wtime()-start_time2 << endl;
-		//start for query answering
-		//cerr << "---query answering---"<<endl;
-		start_time2=omp_get_wtime();
-		cps.to_dataset=dysky_m.to_dataset;
-		cps.po_dataset=dysky_m.po_dataset;
-		// for (int i=0;i<cfg->dyDim_size;i++){
-		// 	cps.compute_skyline_perDimension(cfg, i);	
-		// }
-		size_result= cps.compute_skyline(cfg);
-		results.push_back(size_result);
-		cerr<< "--> Result size: "<<size_result<<endl;
-		cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
-		cerr<< "--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
 
 		cerr <<endl;
 
-	  	// compute an issued query by ARG
-		cerr << "=====Arg=====" <<endl;
-		start_time=omp_get_wtime();
-		arg.compute_skyline(cfg,workload[q]);
-		size_result=arg.skyline_result.size();
-		results.push_back(size_result);
-		cerr<< "--> Result size: "<< size_result<<endl;
-		cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;	
+	  	// skyline query answering by ARG
+	  	if(selectedMethod[4]==true){
+			cerr << "=====Arg=====" <<endl;
+			start_time=omp_get_wtime();
+			arg.compute_skyline(cfg,workload[q]);
+			size_result=arg.skyline_result.size();
+			results.push_back(size_result);
+			cerr<< "--> Result size: "<< size_result<<endl;
+			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;	
+	  	}
+
 		cerr <<endl;
 
-		// compute an issued query by TOS
-		cerr << "=====TOS=====" <<endl;
-		//cout << "=====TOS=====" <<endl;
-		start_time=omp_get_wtime();
-		Cps cps_for_tos(cfg);
-		for (int i=0;i<cfg->dyDim_size;i++){
-			cps_for_tos.decompose_preference(workload[q].preference[i],cfg,i);
+		// skyline query answering by TOS
+		if(selectedMethod[3]==true){
+			cerr << "=====TOS=====" <<endl;
+			//cout << "=====TOS=====" <<endl;
+			start_time=omp_get_wtime();
+			Cps cps_for_tos(cfg);
+			for (int i=0;i<cfg->dyDim_size;i++){
+				cps_for_tos.decompose_preference(workload[q].preference[i],cfg,i);
+			}
+			//cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
+			size_result=tos.compute_skyline(cps_for_tos.chains, cfg).size();
+			results.push_back(size_result);
+			cerr<< "--> Result size: "<< size_result <<endl;
+			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;			
 		}
-		//cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
-		size_result=tos.compute_skyline(cps_for_tos.chains, cfg).size();
-		results.push_back(size_result);
-		cerr<< "--> Result size: "<< size_result <<endl;
-		cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
+
+		cout << "OK" <<endl;
 
 		//**************************************************************************************
-
+		// if results are different
 		if ( adjacent_find( results.begin(), results.end(), not_equal_to<int>() ) != results.end() )
 		{
-			cout << "Query n° "<<q<<endl;
+			cout << "Different answer for Query n° "<<q<<endl;
 			for (int i=0; i<cfg->dyDim_size; i++){
 				workload[q].preference[i].print_edges();
 			}	

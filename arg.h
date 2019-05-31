@@ -49,14 +49,19 @@ void Arg::compute_views(Config *cfg){
 }
 
 void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node){
-
+	//cout << "Arg::compute_view_recursively niveau: "<< niveau<<endl; 
 	int number_views_stored=0;
 	while (number_views_stored< fact(cfg->dyDim_val)){
 		Query q;
 		q.generate_preference(cfg);
+		// q.preference[0].print_edges();
+		// cout << endl;
 
 		if (niveau<cfg->dyDim_size -1){
-
+			preference_stack.push_back(q.preference[0]);
+			preference_tree *pt =new preference_tree;
+			pt->p=q.preference[0];
+			view_node.push_back(pt);
 			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[number_views_stored]->preference_child);
 		}
 		else{
@@ -82,8 +87,8 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 
 void Arg::compute_skyline(Config *cfg, Query q){
 
-	cout << "Arg::compute_skyline"<<endl;
-	cout << "number of cached views: "<<this->sky_view.size()<<endl;
+	//cout << "Arg::compute_skyline"<<endl;
+	//cout << "number of cached views: "<<this->sky_view.size()<<endl;
 	int i;
 	vector<bool> refinement_found(cfg->dyDim_size,false);
 	vector<preference_tree*> pt=this->sky_view;
@@ -97,22 +102,27 @@ void Arg::compute_skyline(Config *cfg, Query q){
 		}	
 	}
 
+	//for (int d=0;d<cfg->dyDim_size;d++) cout << refinement_found[d]<<endl;
+	
 	Cps cps(cfg);
 	for (int d=0;d<cfg->dyDim_size;d++){
 		cps.decompose_preference(q.preference[d],cfg,d);	
 	}
-	if ( adjacent_find( refinement_found.begin(), refinement_found.end(), not_equal_to<bool>() ) != refinement_found.end() ){
+
+	if ( adjacent_find( refinement_found.begin(), refinement_found.end(), not_equal_to<bool>() ) == refinement_found.end() ){
+		cerr << "Refinement, dataset size: "<<cps.to_dataset.size()<<endl; 
 		for (int j=0; j<pt[i]->ids.size();j++){
 			cps.to_dataset.push_back(this->to_dataset[pt[i]->ids[j]]);
 			cps.po_dataset.push_back(this->po_dataset[pt[i]->ids[j]]);
 		}
-		cerr << "Refinement, dataset size: "<<cps.to_dataset.size()<<endl; 
 	}
 	else{
+		cerr << "No view found, dataset size: "<<cps.to_dataset.size()<<endl;
 		cps.to_dataset=this->to_dataset;
-		cps.po_dataset=this->po_dataset;
-		cerr << "No view found, dataset size: "<<cps.to_dataset.size()<<endl; 
+		cps.po_dataset=this->po_dataset; 
 	}
+	
+
 	cps.encoding(cfg);
 	cps.compute_skyline(cfg);
 	this->skyline_result=cps.skyline_result;
