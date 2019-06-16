@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     	false, //dysky_m
     	true, //dysky_v
     	true, //cps
-    	true, //tos
+    	false, //tos
     	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
   	//
 
 	cerr << "---PREPROCESSING---"<<endl<<endl;
-	//cout << "---PREPROCESSING---"<<endl<<endl;
+	cout << "---PREPROCESSING---"<<endl<<endl;
 
 	// start for pre processing
 	dySky dysky_m(cfg);
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 		cerr << "=====dySky=====" <<endl;		
 		start_time=omp_get_wtime();
 		start_time2=omp_get_wtime();
-		dysky_m.compute_always_skyline(cfg);
+		//dysky_m.compute_always_skyline(cfg);
 		cerr<<"--> Time for compute_always_skyline: "<< omp_get_wtime()-start_time2 << endl;
 		// compute candidates 
 		start_time2=omp_get_wtime();
@@ -170,16 +170,17 @@ int main(int argc, char** argv) {
 
 
   	cerr << "---QUERY ANSWERING---"<<endl<<endl;
-  	//cout << "---QUERY ANSWERING---"<<endl<<endl;
+  	cout << "---QUERY ANSWERING---"<<endl<<endl;
   	// input preference
 	//cerr << "Input preference: "<<endl;
 	vector<Query> workload(cfg->workload_size);
 	for (int q=0; q<cfg->workload_size; q++){
 
 		cerr <<"Query n° "<<q<<endl<<endl;
-		//cout <<"Query n° "<<q<<endl<<endl;
+		cout <<"Query n° "<<q<<endl<<endl;
 
-		vector <int> results; // to compare results of all methods
+		map<string, int> results; // to compare results of all methods
+
 		int size_result; 
 
 		workload[q].generate_preference(cfg);
@@ -187,8 +188,8 @@ int main(int argc, char** argv) {
 		workload[q].cross_orders_over_dimensions(cfg);
 		//cout << "query preferences: "<<endl;
 		for (int i=0; i<cfg->dyDim_size; i++){
-			//workload[q].preference[i].print_edges();
-			//cout <<endl;
+			workload[q].preference[i].print_edges();
+			cout <<endl;
 		}	
 
 		// skyline query answering by dySky using materialized views
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
 			start_time2=omp_get_wtime();
 			
 			size_result=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
-			results.push_back(size_result);
+			results["dysky_m"]=size_result;
 			cerr << "--> Result size: "<< size_result<<endl;
 			cerr << "--> Time: "<< omp_get_wtime()-start_time2 << endl;
 		}
@@ -213,11 +214,12 @@ int main(int argc, char** argv) {
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
 			start_time=omp_get_wtime();
-			dysky_v.compute_always_skyline(cfg);
+			dysky_v.print_dataset(cfg);
+			//dysky_v.compute_always_skyline(cfg);
 			dysky_v.compute_candidates(cfg);
 			dysky_v.compute_views(cfg, workload[q].preference_orders);
 			size_result=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
-			results.push_back(size_result);
+			results["dysky_v"]=size_result;
 			cerr << "--> Result size: "<< size_result<<endl;
 			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;
 		}
@@ -247,7 +249,7 @@ int main(int argc, char** argv) {
 			// 	cps.compute_skyline_perDimension(cfg, i);	
 			// }
 			size_result= cps.compute_skyline(cfg);
-			results.push_back(size_result);
+			results["cps"]=size_result;
 			cerr<< "--> Result size: "<<size_result<<endl;
 			cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
 			cerr<< "--> Time for all CPS: "<< omp_get_wtime()-start_time << endl;
@@ -261,7 +263,7 @@ int main(int argc, char** argv) {
 			start_time=omp_get_wtime();
 			arg.compute_skyline(cfg,workload[q]);
 			size_result=arg.skyline_result.size();
-			results.push_back(size_result);
+			results["arg"]=size_result;
 			cerr<< "--> Result size: "<< size_result<<endl;
 			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;	
 	  	}
@@ -279,7 +281,7 @@ int main(int argc, char** argv) {
 			}
 			//cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
 			size_result=tos.compute_skyline(cps_for_tos.chains, cfg).size();
-			results.push_back(size_result);
+			results["tos"]=size_result;
 			cerr<< "--> Result size: "<< size_result <<endl;
 			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;			
 		}
@@ -287,20 +289,23 @@ int main(int argc, char** argv) {
 		cout << "OK" <<endl;
 
 		//**************************************************************************************
-		// if results are different
-		if ( adjacent_find( results.begin(), results.end(), not_equal_to<int>() ) != results.end() )
+		// check and print if results are different
+		vector <int> v;
+		for (auto it : results) v.push_back(it.second);
+		if ( adjacent_find( v.begin(), v.end(), not_equal_to<int>() ) != v.end() )
 		{
 			cout << "Different answer for Query n° "<<q<<endl;
 			for (int i=0; i<cfg->dyDim_size; i++){
+				cout << "dim "<<i<<endl;
 				workload[q].preference[i].print_edges();
 			}	
 
 			cout << "Results: "<<endl;
-			cout << "dysky_m: "<< results[0]<<endl;
-			cout << "dysky_v: "<< results[1]<<endl;
-			cout << "cps: "<< results[2]<<endl;
-			cout << "arg: "<< results[3]<<endl;
-			cout << "tos: "<< results[4]<<endl;
+			if (selectedMethod[0]) cout << "dysky_m: "<< results["dysky_m"]<<endl;
+			if (selectedMethod[1]) cout << "dysky_v: "<< results["dysky_v"]<<endl;
+			if (selectedMethod[2]) cout << "cps: "<< results["cps"]<<endl;
+			if (selectedMethod[3]) cout << "tos: "<< results["tos"]<<endl;
+			if (selectedMethod[4]) cout << "arg: "<< results["arg"]<<endl;
 		}
 		cout<<endl;
 		cerr<<endl;

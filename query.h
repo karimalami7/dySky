@@ -38,7 +38,8 @@ void Query::generate_preference(Config* cfg){
 	for (int i=0; i<cfg->dyDim_size; i++ ){
 	
 		int iteration=0;
-		int max_iteration=rand()%(2*cfg->dyDim_val);
+		//int max_iteration=rand()%(2*cfg->dyDim_val);
+		int max_iteration=1;
 
 		this->preference[i].add_vertices(cfg->dyDim_val);
 

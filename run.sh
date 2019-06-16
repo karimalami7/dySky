@@ -15,13 +15,13 @@
 rm cout
 rm cerr 
 
-for dataset_size in 1000 10000 100000 
+for dataset_size in 1000 10000  
 do
 	for statDim in 4 6 8
 	do
-		for dyDim in 1
+		for dyDim in 2
 		do
-			for value in 4 6 8
+			for value in 4 6 
 			do
 				./dySky -n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 5 > cout
 				mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value

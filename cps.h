@@ -193,7 +193,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 void Cps::encoding(Config *cfg)
 {
 	// encoding values in a dynamic attribute into a multi dimension tuple, eg: value 0 -> (1 2) 
-	////cout << "Cps::encoding"<<endl;
+	cout << "Cps::encoding"<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
 		for (int i=0;i<cfg->dyDim_val;i++){
 			vector<int> encoding; 
@@ -209,16 +209,17 @@ void Cps::encoding(Config *cfg)
 			this->values_encoding[k].push_back(encoding);
 		}		
 	}
-	////cout << "values_encoding size"<< values_encoding.size()<<endl;
+	cout << "values_encoding size"<< values_encoding.size()<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
+		cout<< "dim "<<k<<endl;
 		for (int i=0;i<cfg->dyDim_val;i++){
-			////cout << "value: " << i << " encoding: "; 
+			cout << "value: " << i << " encoding: "; 
 			for (int j=0;j<this->chains[k].size();j++){
-				////cout << this->values_encoding[k][i][j] <<" ";
+				cout << this->values_encoding[k][i][j] <<" ";
 			}	
-			////cout<<endl;
+			cout<<endl;
 		}
-		////cout<<endl;
+		cout<<endl;
 	}
 }
 
@@ -255,6 +256,7 @@ int Cps::compute_skyline(Config *cfg){
 	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
 	vector<Point> temp_dataset(to_dataset.size());
 	for (int i=0; i< this->to_dataset.size(); i++){
+
 		Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
 		for (int j=0;j<=cfg->statDim_size;j++){
 			p[j]=to_dataset[i][j];
@@ -271,6 +273,11 @@ int Cps::compute_skyline(Config *cfg){
 
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
+
+    cout << "print ids" <<endl; 
+	for (auto tuple : skyline_result){
+		cout << tuple << endl;
+	}
     return this->skyline_result.size();
 }
 
