@@ -193,7 +193,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 void Cps::encoding(Config *cfg)
 {
 	// encoding values in a dynamic attribute into a multi dimension tuple, eg: value 0 -> (1 2) 
-	cout << "Cps::encoding"<<endl;
+	//cout << "Cps::encoding"<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
 		for (int i=0;i<cfg->dyDim_val;i++){
 			vector<int> encoding; 

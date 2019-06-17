@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     	false, //dysky_m
     	true, //dysky_v
     	true, //cps
-    	false, //tos
+    	true, //tos
     	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
 	
 	//************************************************
 	// TOS: compute a skyline view wrt all possible total orders
-	Tos tos;
+	Tos tos(cfg);
 	if(selectedMethod[3]){
 		cerr << "=====TOS=====" <<endl;
 		start_time=omp_get_wtime();
@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
 		// skyline query answering by dySky using virtual views
 		if(selectedMethod[1]==true){
 			cerr << "=====dySky: virtual views=====" <<endl;
-			//cout << "=====dySky: virtual views=====" <<endl;
+			cout << "=====dySky: virtual views=====" <<endl;
 			dySky dysky_v(cfg);
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
 	  	// skyline query answering by CPS
 	  	if(selectedMethod[2]==true){
 			cerr << "=====CPS=====" <<endl;
-			//cout << "=====CPS=====" <<endl;
+			cout << "=====CPS=====" <<endl;
 			// start for preference decompositon
 			start_time=omp_get_wtime();
 			//cerr << "---preference decompositon---"<<endl;
@@ -257,6 +257,24 @@ int main(int argc, char** argv) {
 
 		cerr <<endl;
 
+		// skyline query answering by TOS
+		if(selectedMethod[3]==true){
+			cerr << "=====TOS=====" <<endl;
+			cout << "=====TOS=====" <<endl;
+			start_time=omp_get_wtime();
+			// Cps cps_for_tos(cfg);
+			// for (int i=0;i<cfg->dyDim_size;i++){
+			// 	cps_for_tos.decompose_preference(workload[q].preference[i],cfg,i);
+			// }
+			//cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
+			tos.paths=vector<vector<chain>>(cfg->dyDim_size);
+			tos.define_paths(workload[q].preference,cfg);
+			size_result=tos.compute_skyline(cfg).size();
+			results["tos"]=size_result;
+			cerr<< "--> Result size: "<< size_result <<endl;
+			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;			
+		}
+
 	  	// skyline query answering by ARG
 	  	if(selectedMethod[4]==true){
 			cerr << "=====Arg=====" <<endl;
@@ -269,23 +287,6 @@ int main(int argc, char** argv) {
 	  	}
 
 		cerr <<endl;
-
-		// skyline query answering by TOS
-		if(selectedMethod[3]==true){
-			cerr << "=====TOS=====" <<endl;
-			//cout << "=====TOS=====" <<endl;
-			start_time=omp_get_wtime();
-			Cps cps_for_tos(cfg);
-			for (int i=0;i<cfg->dyDim_size;i++){
-				cps_for_tos.decompose_preference(workload[q].preference[i],cfg,i);
-			}
-			//cerr << "--> number of decomposed chains: " << cps_for_tos.chains.size() <<endl;
-			size_result=tos.compute_skyline(cps_for_tos.chains, cfg).size();
-			results["tos"]=size_result;
-			cerr<< "--> Result size: "<< size_result <<endl;
-			cerr << "--> Time: "<< omp_get_wtime()-start_time << endl;			
-		}
-
 		cout << "OK" <<endl;
 
 		//**************************************************************************************
@@ -306,6 +307,9 @@ int main(int argc, char** argv) {
 			if (selectedMethod[2]) cout << "cps: "<< results["cps"]<<endl;
 			if (selectedMethod[3]) cout << "tos: "<< results["tos"]<<endl;
 			if (selectedMethod[4]) cout << "arg: "<< results["arg"]<<endl;
+		}
+		else {
+			cout <<"same results"<<endl;
 		}
 		cout<<endl;
 		cerr<<endl;

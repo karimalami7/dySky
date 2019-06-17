@@ -22,14 +22,20 @@ public:
 	vector<vector<int>> po_dataset;
 	map<chain, chain_tree*> sky_view;
 	vector<vector<chain>> chains_vec_cross;
+	vector<vector<chain>> paths;
 
+	Tos(Config *cfg);
 	void compute_views(Config *cfg);
 	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node);
-	vector<id> compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg);
-
+	vector<id> compute_skyline(Config *cfg);
+	void define_paths(vector<Preference> p, Config *cfg);
 	void chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg);
 	void chain_cross(Config* cfg, vector<chain> v, vector<vector<chain>> chains_vec, int niv);
 };
+
+Tos::Tos(Config *cfg){
+	this->paths=vector<vector<chain>>(cfg->dyDim_size);
+}
 
 void Tos::compute_views(Config *cfg){
 	//cout << "Tos::compute_views"<<endl;
@@ -70,24 +76,85 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
   	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
 }
 
+void Tos::define_paths(vector<Preference> p, Config *cfg){
 
+	p[0].print_edges();
+	//p[1].print_edges();
 
-vector<id> Tos::compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg){
+	for (int i=0; i<p.size();i++){
+		vector<Order> all_orders;
 
-	//cout << "Tos::compute_skyline"<<endl;
+		for (auto it=p[i].out_edges.begin(); it!=p[i].out_edges.end();it++){
+			for (auto it2=it->second.begin();it2!=it->second.end();it2++){
+				all_orders.push_back(Order(it->first,*it2));
+			}
+		}
 	
-	this->chain_graph_to_vec_representation(chains, cfg);
 
-	//cout << "chains_vec_cross size: "<<this->chains_vec_cross.size()<<endl;
+		// generer toutes les permutations qui contiennent ces orders
+		vector<int> tos_values(cfg->dyDim_val);
+	  	for (int l=0; l<cfg->dyDim_val; l++){tos_values[l]=l;}
+
+	  	do{
+	  		bool path_to_include=true;
+  			// for (auto p : tos_values){
+  			// 	cout << p << " : ";
+  			// }
+  			// cout <<endl;
+
+	  		for(auto a=all_orders.begin(); a!=all_orders.end() &&  path_to_include ;a++){
+	  			// check if this order is included in path
+	  			for (int j=0;j<cfg->dyDim_val && path_to_include ;j++){
+	  				// cout << "j "<<j<<endl;
+	  				// cout << "j "<<j<< " : "<< tos_values[j]<<" : " << a->first<<endl;
+	  				if (tos_values[j]==a->first){
+	  					// cout << "j "<<j<< " : "<< tos_values[j]<<" : " << a->first<<endl;
+	  					for (int k=0;k<j && path_to_include;k++){
+	  						// cout << "k "<<k<<endl;
+	  						if(tos_values[k]==a->second) {
+	  							// cout << "k "<<k<< " : "<< tos_values[j]<<" : " << a->second<<endl;
+	  							// cout << "hs"<<endl;
+	  							path_to_include=false;
+	  						}
+	  					}
+
+	  				}
+	  			}
+	  		}
+	  		// cout <<"ici"<<endl;
+	  		if(path_to_include){
+	  			this->paths[i].push_back(tos_values);
+	  			for (auto p : tos_values){
+	  				cout << p << " : ";
+	  			}
+	  			cout <<endl;
+	  		}
+
+	  	}while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+
+	}
+}
+
+vector<id> Tos::compute_skyline(Config *cfg){
+
+	 cout << "Tos::compute_skyline"<<endl;
+	
+	// this->chain_graph_to_vec_representation(chains, cfg);
+
+	vector<chain> v;
+	this->chains_vec_cross.clear();
+	Tos::chain_cross(cfg, v, this->paths, 0);
+
+	cout << "chains_vec_cross size: "<<this->chains_vec_cross.size()<<endl;
 	for (int i=0;i<this->chains_vec_cross.size();i++){
-		//cout << "croisement " <<i<<endl;
+		cout << "croisement " <<i<<endl;
 		for (int j=0;j<this->chains_vec_cross[i].size();j++){
 			for(auto value: this->chains_vec_cross[i][j]){
-				//cout << value <<" ";
+				cout << value <<" ";
 			}
-			//cout<<endl;	
+			cout<<endl;	
 		}
-		//cout<<endl;
+		cout<<endl;
 	}
 	//***************************************************
 	// union the skyline of the chains
@@ -101,15 +168,17 @@ vector<id> Tos::compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg){
 			ct=ct->chain_child[this->chains_vec_cross[i][j]];
 			j++;
 		}
+		cout <<"ids"<<endl;
+		for (int i=0; i<ct->ids.size();i++){
+			cout << ct->ids[i] <<endl;
+		}
+		cout <<endl;
+
 		if(i==0){
 			result=ct->ids;
 
 		}
-		else{
-			//cout <<"ids"<<endl;
-			for (int i=0; i<ct->ids.size();i++){
-				//cout << ct->ids[i] <<endl;
-			}
+		else{	
 			std::vector<id> v(result.size()+ct->ids.size());   
 		  	std::vector<id>::iterator it;
 		  	it=std::set_union(result.begin(), result.end(), ct->ids.begin(), ct->ids.end(), v.begin());                        
@@ -121,6 +190,12 @@ vector<id> Tos::compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg){
 			//cout << result[i] <<endl;
 		}
 	}
+
+	cout << "print ids at the end" <<endl; 
+	for (auto tuple : result){
+		cout << tuple << endl;
+	}
+	
 	return result;
 }
 
@@ -134,16 +209,16 @@ vector<id> Tos::compute_skyline(vector<vector<Graph<int>>> chains, Config *cfg){
 
 void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg){
 		
-	//cout << "Tos::chain_graph_to_vec_representation"<<endl;
+	cout << "Tos::chain_graph_to_vec_representation"<<endl;
 
-	// for (int i=0;i<this->chains.size();i++){
-	// 	for (int j=0;j<this->chains[i].size();j++){
-	// 		for(auto value: this->chains[i][j]){
-	// 			//cout << value <<" ";
+	// for (int i=0;i<chains.size();i++){
+	// 	for (int j=0;j<chains[i].size();j++){
+	// 		for(auto value: chains[i][j]){
+	// 			cout << value <<" ";
 	// 		}
-	// 		//cout<<endl;	
+	// 		cout<<endl;	
 	// 	}
-	// 	//cout<<endl;
+	// 	cout<<endl;
 	// }
 
 
@@ -151,9 +226,9 @@ void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, C
 	// transforms chains from graph representation to vector representation
 	vector<vector<chain>> chains_vec(cfg->dyDim_size);
 	for (int i=0;i<cfg->dyDim_size;i++){
-		//cout << "Dimension: "<<i<<endl;
+		cout << "Dimension: "<<i<<endl;
 		for (Graph<int> g : chains[i]){
-			//g.print_edges();
+			g.print_edges();
 			chain c;
 			int num_childs=cfg->dyDim_val;
 			vector<int> vertices=g.vertices;
@@ -174,14 +249,21 @@ void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, C
 			it=std::set_difference (vertices.begin(), vertices.end(), vertices_added.begin(), vertices_added.end(), v.begin());
 			v.resize(it-v.begin());
 			c.push_back(v[0]);
-			for (int s : c) //cout << s << " ";
-			//cout <<endl;
+			for (int s : c) cout << s << " ";
+			cout <<endl;
 			chains_vec[i].push_back(c);
 		}		
 	}
 	//***************************************************
 
+	// cout << "chains_vec size: " <<chains_vec.size()<<endl;
+	// for (auto ch : chains_vec){
+	// 	cout << ch.size() << " : " ;
+	// }
+	// cout <<endl;
+
 	vector<chain> v;
+	this->chains_vec_cross.clear();
 	Tos::chain_cross(cfg, v, chains_vec, 0);
 
 }
