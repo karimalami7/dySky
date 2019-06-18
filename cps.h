@@ -249,9 +249,9 @@ int Cps::compute_skyline(Config *cfg){
 
 	int card_virtual_dimensions=0;
 	for (auto c : this->chains) card_virtual_dimensions+=c.size();
-	////cout << card_virtual_dimensions << " virtual dimensions"<<endl;
+	//cout << card_virtual_dimensions << " virtual dimensions"<<endl;
 	int All = (1<<(cfg->statDim_size+card_virtual_dimensions))-1;
-	////cout << All << " = All"<<endl;
+	//cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
 	vector<Point> temp_dataset(to_dataset.size());
@@ -274,7 +274,7 @@ int Cps::compute_skyline(Config *cfg){
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
 
- //    cout << "print ids" <<endl; 
+ 	//    cout << "print ids" <<endl; 
 	// for (auto tuple : skyline_result){
 	// 	cout << tuple << endl;
 	// }
