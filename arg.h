@@ -96,9 +96,14 @@ void Arg::compute_skyline(Config *cfg, Query q){
 		for (i=0; i<pt.size(); i++){
 			if(pt[i]->p.is_subgraph(q.preference[d])){
 				refinement_found[d]=true;
-				//cout <<"refinement found: view"<< i<<endl;
+				cout <<"refinement found: view"<< i<<endl;
+				// avancer au deuxieme niveau
+				pt=pt[i]->preference_child;
 				break;
 			}
+		}
+		if (refinement_found[d]==false){
+			break;
 		}	
 	}
 
@@ -109,15 +114,16 @@ void Arg::compute_skyline(Config *cfg, Query q){
 		cps.decompose_preference(q.preference[d],cfg,d);	
 	}
 
-	if ( adjacent_find( refinement_found.begin(), refinement_found.end(), not_equal_to<bool>() ) == refinement_found.end() ){
-		cerr << "Refinement, dataset size: "<<cps.to_dataset.size()<<endl; 
+	if ( adjacent_find( refinement_found.begin(), refinement_found.end(), not_equal_to<bool>() ) == refinement_found.end() && refinement_found[0]==true){
+		cerr << "Refinement found"<<endl; 
 		for (int j=0; j<pt[i]->ids.size();j++){
 			cps.to_dataset.push_back(this->to_dataset[pt[i]->ids[j]]);
 			cps.po_dataset.push_back(this->po_dataset[pt[i]->ids[j]]);
 		}
+		cerr <<"dataset size: "<<cps.to_dataset.size()<<endl; 
 	}
 	else{
-		cerr << "No view found, dataset size: "<<cps.to_dataset.size()<<endl;
+		cerr << "No view found"<<endl;
 		cps.to_dataset=this->to_dataset;
 		cps.po_dataset=this->po_dataset; 
 	}

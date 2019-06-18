@@ -561,10 +561,10 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference)
 
 	//result.insert(result.end(), always_sky.begin(), always_sky.end());
 
-	cout << "print ids at the end" <<endl; 
-	for (auto tuple : result){
-		cout << tuple << endl;
-	}
+	// cout << "print ids at the end" <<endl; 
+	// for (auto tuple : result){
+	// 	cout << tuple << endl;
+	// }
 
 	return result;
 }

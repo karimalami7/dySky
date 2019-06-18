@@ -78,12 +78,12 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 
 void Tos::define_paths(vector<Preference> p, Config *cfg){
 
-	p[0].print_edges();
+	
 	//p[1].print_edges();
 
 	for (int i=0; i<p.size();i++){
 		vector<Order> all_orders;
-
+		p[i].print_edges();
 		for (auto it=p[i].out_edges.begin(); it!=p[i].out_edges.end();it++){
 			for (auto it2=it->second.begin();it2!=it->second.end();it2++){
 				all_orders.push_back(Order(it->first,*it2));
@@ -168,10 +168,10 @@ vector<id> Tos::compute_skyline(Config *cfg){
 			ct=ct->chain_child[this->chains_vec_cross[i][j]];
 			j++;
 		}
-		cout <<"ids"<<endl;
-		for (int i=0; i<ct->ids.size();i++){
-			cout << ct->ids[i] <<endl;
-		}
+		// cout <<"ids"<<endl;
+		// for (int i=0; i<ct->ids.size();i++){
+		// 	cout << ct->ids[i] <<endl;
+		// }
 		cout <<endl;
 
 		if(i==0){
@@ -191,10 +191,10 @@ vector<id> Tos::compute_skyline(Config *cfg){
 		}
 	}
 
-	cout << "print ids at the end" <<endl; 
-	for (auto tuple : result){
-		cout << tuple << endl;
-	}
+	// cout << "print ids at the end" <<endl; 
+	// for (auto tuple : result){
+	// 	cout << tuple << endl;
+	// }
 	
 	return result;
 }

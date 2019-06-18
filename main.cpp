@@ -87,10 +87,10 @@ int main(int argc, char** argv) {
 
     bool selectedMethod[]={
     	false, //dysky_m
-    	true, //dysky_v
+    	false, //dysky_v
     	true, //cps
-    	true, //tos
-    	false, //arg
+    	false, //tos
+    	true, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -278,6 +278,7 @@ int main(int argc, char** argv) {
 	  	// skyline query answering by ARG
 	  	if(selectedMethod[4]==true){
 			cerr << "=====Arg=====" <<endl;
+			cout << "=====Arg=====" <<endl;
 			start_time=omp_get_wtime();
 			arg.compute_skyline(cfg,workload[q]);
 			size_result=arg.skyline_result.size();

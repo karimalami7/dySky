@@ -274,10 +274,10 @@ int Cps::compute_skyline(Config *cfg){
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
 
-    cout << "print ids" <<endl; 
-	for (auto tuple : skyline_result){
-		cout << tuple << endl;
-	}
+ //    cout << "print ids" <<endl; 
+	// for (auto tuple : skyline_result){
+	// 	cout << tuple << endl;
+	// }
     return this->skyline_result.size();
 }
 
