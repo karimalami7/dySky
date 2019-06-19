@@ -27,6 +27,7 @@ public:
 	Tos(Config *cfg);
 	void compute_views(Config *cfg);
 	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node);
+	void compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node);
 	vector<id> compute_skyline(Config *cfg);
 	void define_paths(vector<Preference> p, Config *cfg);
 	void chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg);
@@ -37,28 +38,99 @@ Tos::Tos(Config *cfg){
 	this->paths=vector<vector<chain>>(cfg->dyDim_size);
 }
 
-void Tos::compute_views(Config *cfg){
-	//cout << "Tos::compute_views"<<endl;
-  	vector<Preference> preference_stack;
-  	this->compute_view_recursively(cfg, 0, preference_stack, this->sky_view);
-}
-
-void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node){
-	//cout << "Tos::compute_view_recursively, niveau "<< niveau<<endl;
+void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node){
+	
 	chain tos_values(cfg->dyDim_val);
-  	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
-  	do {
+	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
+	vector<chain> all_permutation;
+	do{
+		all_permutation.push_back(tos_values);
+	}
+	while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+
+	#pragma omp parallel for schedule(dynamic)
+	for (int i=0;i<all_permutation.size();i++){
   	  	Preference p_to;
 		p_to.add_vertices(cfg->dyDim_val);
 		for (id source=0;source<cfg->dyDim_val-1;source++){
 			unordered_set<id> v_dest;
-			v_dest.insert(tos_values[source+1]);
-			p_to.add_edges(tos_values[source],v_dest);
+			v_dest.insert(all_permutation[i][source+1]);
+			p_to.add_edges(all_permutation[i][source],v_dest);
 		}
-		view_node[tos_values]=new chain_tree;;
+		Cps *cps_tos = new Cps(cfg);
+		cps_tos->decompose_preference(p_to,cfg,0);	
+		cps_tos->encoding(cfg);
+		cps_tos->to_dataset=this->to_dataset;
+		cps_tos->po_dataset=this->po_dataset;
+		cps_tos->compute_skyline(cfg);
+		#pragma omp critical
+		{
+			view_node[all_permutation[i]]=new chain_tree;
+		}
+		view_node[all_permutation[i]]->ids=cps_tos->skyline_result;
+	}
+}
+
+void Tos::compute_views(Config *cfg){
+	//cout << "Tos::compute_views"<<endl;
+  	
+  	if(cfg->dyDim_size==1){
+  		this->compute_view_1d(cfg, this->sky_view);
+  	}
+  	else{
+		chain tos_values(cfg->dyDim_val);
+		for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
+		vector<chain> all_permutation;
+		do{
+			all_permutation.push_back(tos_values);
+		}
+		while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+
+		vector<vector<Preference>> preference_stack(all_permutation.size());
+		
+		#pragma omp parallel for schedule(dynamic)
+		for (int j=0;j<all_permutation.size();j++) {
+	  	  	Preference p_to;
+			p_to.add_vertices(cfg->dyDim_val);
+			for (id source=0;source<cfg->dyDim_val-1;source++){
+				unordered_set<id> v_dest;
+				v_dest.insert(all_permutation[j][source+1]);
+				p_to.add_edges(all_permutation[j][source],v_dest);
+			}
+			preference_stack[j].push_back(p_to);	
+			#pragma omp critical
+			{	
+				this->sky_view[all_permutation[j]]=new chain_tree;
+			}		
+  			this->compute_view_recursively(cfg, 1, preference_stack[j], this->sky_view[all_permutation[j]]->chain_child);
+  		}
+  	}
+  	
+}
+
+void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node){
+	//cout << "Tos::compute_view_recursively, niveau "<< niveau<<endl;
+
+	chain tos_values(cfg->dyDim_val);
+	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
+	vector<chain> all_permutation;
+	do{
+		all_permutation.push_back(tos_values);
+	}
+	while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+
+	for (int j=0;j<all_permutation.size();j++) {
+  	  	Preference p_to;
+		p_to.add_vertices(cfg->dyDim_val);
+		for (id source=0;source<cfg->dyDim_val-1;source++){
+			unordered_set<id> v_dest;
+			v_dest.insert(all_permutation[j][source+1]);
+			p_to.add_edges(all_permutation[j][source],v_dest);
+		}
 		preference_stack.push_back(p_to);
 		if (niveau<cfg->dyDim_size -1){
-			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[tos_values]->chain_child);
+			view_node[all_permutation[j]]=new chain_tree;
+			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[all_permutation[j]]->chain_child);
 		}
 		else if (niveau==cfg->dyDim_size-1){
 			Cps *cps_tos = new Cps(cfg);
@@ -69,11 +141,12 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			cps_tos->to_dataset=this->to_dataset;
 			cps_tos->po_dataset=this->po_dataset;
 			cps_tos->compute_skyline(cfg);
-		  	view_node[tos_values]->ids=cps_tos->skyline_result;
-		  	sort(view_node[tos_values]->ids.begin(),view_node[tos_values]->ids.end());
+			view_node[all_permutation[j]]=new chain_tree;
+		  	view_node[all_permutation[j]]->ids=cps_tos->skyline_result;
+		  	sort(view_node[all_permutation[j]]->ids.begin(),view_node[all_permutation[j]]->ids.end());
 		}	
 		preference_stack.pop_back();
-  	} while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+  	} 
 }
 
 void Tos::define_paths(vector<Preference> p, Config *cfg){

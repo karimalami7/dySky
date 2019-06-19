@@ -35,7 +35,7 @@ class dySky {
 	
 	void compute_views(Config* cfg, vector<vector<Order>> preference_orders);
 	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders);
-	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, vector<id> remaining_candidates);
+	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders);
 	void compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global, vector<Order> orders_stack);
 	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference);
 
@@ -127,49 +127,20 @@ int dySky::compute_candidates(Config* cfg){
 
 }
 
-void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
-	cout << "dySky::compute_views" <<endl;
 
-	vector<Point> candidates_tuples;
-	for (int i=0; i<this->candidates.size(); i++){
-		Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-		for (int j=0;j<=cfg->statDim_size;j++){
-			p[j]=to_dataset[this->candidates[i]][j];
-		}
-		for (int j=0;j<cfg->dyDim_size;j++){
-			p[j+(cfg->statDim_size+1)]=po_dataset[this->candidates[i]][j];
-		}
-		candidates_tuples.push_back(p);
-	}
-
-
-	if (cfg->dyDim_size==1){
-		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders);
-	}
-	else{
-		vector<Order> orders_stack;
-		compute_view_recursively_md(cfg, 0, candidates_tuples,orders_stack, this->sky_view, preference_orders, this->candidates);
-	}
-
-	// int views_total_storage=0;
-	// for (auto it=this->sky_view.begin();it!=this->sky_view.end();it++){
-	// 	views_total_storage+=(it->second)->ids.size();
-	// }
-	// //cout << "Views total storage: " << views_total_storage <<endl;
-
-}
 
 void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders){
 	
-	//#pragma omp parallel for schedule(dynamic)
+	#pragma omp parallel for schedule(dynamic)
 	for(int i=0;i<preference_orders[0].size();i++){
 		int best_value=preference_orders[0][i].first;
 		int worst_value=preference_orders[0][i].second;
 		//cout << best_value << ":" << worst_value <<endl;
 
-		vector<Point> branch_dataset;
+		
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// partitionner les donnees par rapport aux valeurs best_value, worst_value
+		vector<Point> branch_dataset;
 		for (int i=0; i<dataset.size(); i++){
 			if (dataset[i][cfg->statDim_size+1]==best_value){
 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
@@ -202,14 +173,78 @@ void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<O
 	  	//******************************************
 	  	// sort ids
 	  	std::sort (sky.begin(),sky.end());
-	  	sky_view[Order(best_value,worst_value)]=new order_tree;
+
+	  	#pragma omp critical
+	  	{
+	  		sky_view[Order(best_value,worst_value)]=new order_tree;
+	  	}
 	  	sky_view[Order(best_value,worst_value)]->ids=sky;
 	}
 }
 
-void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, vector<id> remaining_candidates){
+void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
+	cout << "dySky::compute_views" <<endl;
+
+	vector<Point> candidates_tuples;
+	for (int i=0; i<this->candidates.size(); i++){
+		Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+		for (int j=0;j<=cfg->statDim_size;j++){
+			p[j]=to_dataset[this->candidates[i]][j];
+		}
+		for (int j=0;j<cfg->dyDim_size;j++){
+			p[j+(cfg->statDim_size+1)]=po_dataset[this->candidates[i]][j];
+		}
+		candidates_tuples.push_back(p);
+	}
+
+
+	if (cfg->dyDim_size==1){
+		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders);
+	}
+	else{
+		vector<vector<Order>> orders_stack(preference_orders[0].size());
+		#pragma omp parallel for schedule(dynamic)
+		for(int s=0;s<preference_orders[0].size();s++){
+			int best_value=preference_orders[0][s].first;
+			int worst_value=preference_orders[0][s].second;
+			//cout <<"niveau: "<<0<< " --> "<< best_value<<" : "<<worst_value<<endl;		
+			orders_stack[s].push_back(Order(best_value,worst_value));
+			
+			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// partitionner les donnees par rapport à cette dimension
+			vector<Point> branch_dataset;
+			for (int i=0; i<candidates_tuples.size(); i++){
+				if (candidates_tuples[i][cfg->statDim_size+1]==best_value){
+					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+					memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+					p[cfg->statDim_size+1]=0;
+					branch_dataset.push_back(p);
+				}else if (candidates_tuples[i][cfg->statDim_size+1]==worst_value){
+					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+					memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+					p[cfg->statDim_size+1]=1;
+					branch_dataset.push_back(p);
+				}
+			}
+			#pragma omp critical
+			{
+				this->sky_view[Order(best_value,worst_value)]=new order_tree;;
+			}		
+			compute_view_recursively_md(cfg, 1, branch_dataset, orders_stack[s], this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
+		}
+	}
+
+	// int views_total_storage=0;
+	// for (auto it=this->sky_view.begin();it!=this->sky_view.end();it++){
+	// 	views_total_storage+=(it->second)->ids.size();
+	// }
+	// //cout << "Views total storage: " << views_total_storage <<endl;
+
+}
+
+void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders){
 	
-	//#pragma omp parallel for schedule(dynamic)
+	//#pragma omp parallel for schedule(dynamic) if (niveau==0)
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;
@@ -236,15 +271,15 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 					branch_dataset.push_back(p);
 				}
 			}
+
 			sky_view[Order(best_value,worst_value)]=new order_tree;;
-			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders, remaining_candidates);
+			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
 		}
 
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		//si c'est la dernière dimension
 		if (niveau==cfg->dyDim_size-1){
 			vector<Point> branch_dataset;
-
 			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// partitionner les donnees par rapport à cette dimension
 			for (int i=0; i<dataset.size(); i++){
@@ -260,7 +295,6 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 					branch_dataset.push_back(p);
 				}
 			}
-
 			//*************************************
 			// calculer le skyline
 			int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
@@ -293,14 +327,12 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 		  	h.resize(it3-h.begin());   
 		  	view=h; 
 
-
 		  	//MINUS
 			std::vector<id> g(view.size());   
 		  	std::vector<id>::iterator it5;
 		  	it5=std::set_difference(view.begin(), view.end(), notSky.begin(), notSky.end(), g.begin());                        
 		  	g.resize(it5-g.begin());   
 		  	view=g; 
-
 
 		  	sky_view[Order(best_value,worst_value)]=new order_tree;
 		  	sky_view[Order(best_value,worst_value)]->ids=view;

@@ -34,7 +34,7 @@ public:
 
 	void compute_views(Config *cfg);
 	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node);
-
+	void compute_view_1d(Config *cfg, vector<preference_tree*> &view_node);
 	void compute_skyline(Config *cfg, Query q);
 
 };
@@ -44,14 +44,49 @@ void Arg::compute_views(Config *cfg){
 	
 	//cout << "Arg::compute_views"<<endl;
 
-	vector<Preference> preference_stack;
-  	this->compute_view_recursively(cfg, 0, preference_stack, this->sky_view);
+	if(cfg->dyDim_size==1){
+		compute_view_1d(cfg, this->sky_view);
+	}
+	else{
+		vector<vector<Preference>> preference_stack(fact(cfg->dyDim_val));
+		this->sky_view=vector<preference_tree*>(fact(cfg->dyDim_val));
+		#pragma omp parallel for schedule(dynamic)
+		for (int number_view_stored=0; number_view_stored< fact(cfg->dyDim_val); number_view_stored++){
+			Query q;
+			q.generate_preference(cfg);		
+			preference_stack[number_view_stored].push_back(q.preference[0]);
+			preference_tree *pt =new preference_tree;
+			pt->p=q.preference[0];
+			this->sky_view[number_view_stored]=pt;
+	  		this->compute_view_recursively(cfg, 1, preference_stack[number_view_stored], this->sky_view[number_view_stored]->preference_child);		
+		}
+	}
+
+}
+
+void Arg::compute_view_1d(Config *cfg, vector<preference_tree*> &view_node){
+
+	#pragma omp parallel for schedule(dynamic)
+	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
+		Query q;
+		q.generate_preference(cfg);
+		Cps cps(cfg);
+		cps.decompose_preference(q.preference[0],cfg,0);	
+		cps.encoding(cfg);
+		cps.to_dataset=this->to_dataset;
+		cps.po_dataset=this->po_dataset;
+		cps.compute_skyline(cfg);
+		preference_tree *pt =new preference_tree;
+		pt->p=q.preference[0];
+		pt->ids=cps.skyline_result;
+		view_node.push_back(pt);
+	}
 }
 
 void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node){
 	//cout << "Arg::compute_view_recursively niveau: "<< niveau<<endl; 
-	int number_views_stored=0;
-	while (number_views_stored< fact(cfg->dyDim_val)){
+	
+	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
 		Query q;
 		q.generate_preference(cfg);
 		// q.preference[0].print_edges();
@@ -80,7 +115,6 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			view_node.push_back(pt);
 		}
 		preference_stack.pop_back();
-		number_views_stored++;
 	}
 
 }

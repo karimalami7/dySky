@@ -86,11 +86,11 @@ int main(int argc, char** argv) {
     ofstream myFile(fileName);
 
     bool selectedMethod[]={
-    	true, //dysky_m
+    	false, //dysky_m
     	true, //dysky_v
     	true, //cps
     	false, //tos
-    	false, //arg
+    	true, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -113,7 +113,8 @@ int main(int argc, char** argv) {
 	//**********************************************
 	// dySky
 	if (selectedMethod[0]==true){
-		cerr << "=====dySky=====" <<endl;		
+		cerr << "=====dySky=====" <<endl;	
+		cout << "=====dySky=====" <<endl;	
 		start_time=omp_get_wtime();
 		// compute candidates 
 		start_time2=omp_get_wtime();
@@ -128,37 +129,41 @@ int main(int argc, char** argv) {
 	//***********************************************
 
 	cerr<<endl;
+	cout<<endl;
 
-	//***********************************************
-	//ARG: compute skyline view wrt some partial order
-	Arg arg;
-	if(selectedMethod[4]==true){
-		cerr << "=====Arg=====" <<endl;
-		start_time=omp_get_wtime();
-		arg.to_dataset=dysky_m.to_dataset;
-		arg.po_dataset=dysky_m.po_dataset;
-		arg.compute_views(cfg);
-		cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
-	}
-	//************************************************
-
-	cerr<<endl;
-	
 	//************************************************
 	// TOS: compute a skyline view wrt all possible total orders
 	Tos tos(cfg);
 	if(selectedMethod[3]){
 		cerr << "=====TOS=====" <<endl;
+		cout << "=====TOS=====" <<endl;
 		start_time=omp_get_wtime();
 	  	tos.to_dataset=dysky_m.to_dataset;
 	  	tos.po_dataset=dysky_m.po_dataset;
 	  	tos.compute_views(cfg);
 	  	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
   	}
+	//************************************************
+
+	cerr<<endl;
+	cout<<endl;
+
   	//***********************************************
-  	
+	//ARG: compute skyline view wrt some partial order
+	Arg arg;
+	if(selectedMethod[4]==true){
+		cerr << "=====Arg=====" <<endl;
+		cout << "=====Arg=====" <<endl;
+		start_time=omp_get_wtime();
+		arg.to_dataset=dysky_m.to_dataset;
+		arg.po_dataset=dysky_m.po_dataset;
+		arg.compute_views(cfg);
+		cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
+	}	
+  	//***********************************************
+
   	cerr<<endl;
-  	//cout<<endl;
+  	cout<<endl;
 
   	/////////////////////////////////////////////////////////////////////////////
   	// skyline query answering
@@ -187,6 +192,13 @@ int main(int argc, char** argv) {
 	if (selectedMethod[3]) monFlux1 << "tos"<< " : ";
 	if (selectedMethod[4]) monFlux1 << "arg"<< " : ";
 
+	map<string, double> processing_time;
+	processing_time["dysky_m"]=0;
+	processing_time["dysky_v"]=0;
+	processing_time["cps"]=0;
+	processing_time["tos"]=0;
+	processing_time["arg"]=0;
+
 	monFlux1 << endl;
 	//*****************************************************************************************
 
@@ -200,7 +212,6 @@ int main(int argc, char** argv) {
 		cout <<"Query n° "<<q<<endl<<endl;
 
 		map<string, int> results; // to compare results of all methods
-		map<string, double> processing_time;
 		int size_result; 
 
 		workload[q].generate_preference(cfg);
@@ -215,10 +226,10 @@ int main(int argc, char** argv) {
 		// skyline query answering by dySky using materialized views
 		if(selectedMethod[0]==true){
 			cerr << "=====dySky: materialized views=====" <<endl;
-			//cout << "=====dySky: materialized views=====" <<endl;
+			cout << "=====dySky: materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			results["dysky_m"]=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
-			processing_time["dysky_m"]=omp_get_wtime()-start_time;
+			processing_time["dysky_m"]=processing_time["dysky_m"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_m"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_m"] << endl;
 		}
@@ -242,7 +253,7 @@ int main(int argc, char** argv) {
 			start_time2=omp_get_wtime();
 			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
 			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
-			processing_time["dysky_v"]=omp_get_wtime()-start_time;
+			processing_time["dysky_v"]=processing_time["dysky_v"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_v"] << endl;
 		}
@@ -269,7 +280,7 @@ int main(int argc, char** argv) {
 			results["cps"]=cps.compute_skyline(cfg);
 			cerr<< "--> Result size: "<<results["cps"]<<endl;
 			cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
-			processing_time["cps"]=omp_get_wtime()-start_time;
+			processing_time["cps"]=processing_time["cps"]+(omp_get_wtime()-start_time);
 			cerr<< "--> Time for all CPS: "<< processing_time["cps"] << endl;
 		}
 
@@ -283,7 +294,7 @@ int main(int argc, char** argv) {
 			tos.paths=vector<vector<chain>>(cfg->dyDim_size);
 			tos.define_paths(workload[q].preference,cfg);
 			results["tos"]=tos.compute_skyline(cfg).size();
-			processing_time["tos"]=omp_get_wtime()-start_time;
+			processing_time["tos"]=processing_time["tos"]+(omp_get_wtime()-start_time);
 			cerr<< "--> Result size: "<< results["tos"] <<endl;
 			cerr << "--> Time: "<< processing_time["tos"] << endl;			
 		}
@@ -296,19 +307,11 @@ int main(int argc, char** argv) {
 			arg.compute_skyline(cfg,workload[q]);
 			results["arg"]=arg.skyline_result.size();
 			cerr<< "--> Result size: "<< results["arg"] <<endl;
-			processing_time["arg"]=omp_get_wtime()-start_time;
+			processing_time["arg"]=processing_time["arg"]+(omp_get_wtime()-start_time);
 			cerr << "--> Time: "<< processing_time["arg"] << endl;	
 	  	}
 
 		cerr <<endl;
-
-		if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]<< " : ";
-		if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]<< " : ";
-		if (selectedMethod[2]) monFlux1 << processing_time["cps"]<< " : ";
-		if (selectedMethod[3]) monFlux1 << processing_time["tos"]<< " : ";
-		if (selectedMethod[4]) monFlux1 << processing_time["arg"]<< " : ";
-
-		monFlux1 << endl;
 
 		//**************************************************************************************
 		// check and print if results are different
@@ -335,5 +338,13 @@ int main(int argc, char** argv) {
 		cout<<endl;
 		cerr<<endl;
 	}
+
+	if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]<< " : ";
+	if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]<< " : ";
+	if (selectedMethod[2]) monFlux1 << processing_time["cps"]<< " : ";
+	if (selectedMethod[3]) monFlux1 << processing_time["tos"]<< " : ";
+	if (selectedMethod[4]) monFlux1 << processing_time["arg"]<< " : ";
+
+	monFlux1 << endl;
 }
 

@@ -209,17 +209,17 @@ void Cps::encoding(Config *cfg)
 			this->values_encoding[k].push_back(encoding);
 		}		
 	}
-	cout << "values_encoding size"<< values_encoding.size()<<endl;
+	//cout << "values_encoding size"<< values_encoding.size()<<endl;
 	for (int k=0; k<cfg->dyDim_size; k++){
-		cout<< "dim "<<k<<endl;
+		//cout<< "dim "<<k<<endl;
 		for (int i=0;i<cfg->dyDim_val;i++){
-			cout << "value: " << i << " encoding: "; 
+			//cout << "value: " << i << " encoding: "; 
 			for (int j=0;j<this->chains[k].size();j++){
-				cout << this->values_encoding[k][i][j] <<" ";
+				//cout << this->values_encoding[k][i][j] <<" ";
 			}	
-			cout<<endl;
+			//cout<<endl;
 		}
-		cout<<endl;
+		//cout<<endl;
 	}
 }
 
@@ -278,6 +278,8 @@ int Cps::compute_skyline(Config *cfg){
 	// for (auto tuple : skyline_result){
 	// 	cout << tuple << endl;
 	// }
+   	sort(this->skyline_result.begin(),this->skyline_result.end());
+
     return this->skyline_result.size();
 }
 
