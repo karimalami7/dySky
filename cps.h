@@ -40,7 +40,7 @@ Cps::Cps(Config *cfg){
 
 // decompose a partial order into chains
 void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
-	////cout <<"Cps::decompose_preference"<<endl;
+	//cout <<"Cps::decompose_preference"<<endl;
 	Preference transitive_preference;
 
 	// compute transitive
@@ -51,7 +51,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	// find incomparable pairs
 
 	vector<pair<id,id>> incomparable_pairs;
-	////cout << "1 / Find incomparable pairs"<<endl;
+	//cout << "1 / Find incomparable pairs"<<endl;
 	// for all vertices i
 	for (int i=0; i<transitive_preference.vertices.size(); i++){
 		int value1=transitive_preference.vertices[i];
@@ -76,7 +76,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	}
 
 	// construct consistency graph
-	////cout <<"2 / Construct Consistency graph"<<endl;
+	//cout <<"2 / Construct Consistency graph"<<endl;
 	Graph<int> consistency_graph;
 	consistency_graph.vertices=vector<int>(incomparable_pairs.size());
 	for (int i=0; i<incomparable_pairs.size(); i++){
@@ -117,12 +117,12 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	}
 	// print non induced pairs
 	////cout <<endl<<"Non induced pairs: "<<endl;
-	for (auto it_vector=non_induced_pairs.begin();it_vector!=non_induced_pairs.end();it_vector++){
-		////cout << it_vector->first<<" "<< it_vector->second <<endl;
-	}
+	// for (auto it_vector=non_induced_pairs.begin();it_vector!=non_induced_pairs.end();it_vector++){
+	// 	cout << it_vector->first<<" "<< it_vector->second <<endl;
+	// }
 	
 	// compute incompatibility graph
-	////cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
+	//cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
 	Graph<int> incompatibility_graph;
 	incompatibility_graph.vertices=vector<int>(non_induced_pairs.size());
 	for (int i=0; i<non_induced_pairs.size(); i++){
@@ -152,13 +152,13 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	// incompatibility_graph.print_edges();
 
 	// color incompatibility graph
-	////cout <<endl<<"4 / Color Incompatibility graph"<<endl;
+	//cout <<endl<<"4 / Color Incompatibility graph"<<endl;
 	incompatibility_graph.greedyColoring();
 
-	for(int i=0;i<incompatibility_graph.vertices.size();i++){
+	//for(int i=0;i<incompatibility_graph.vertices.size();i++){
 		////cout << "pair: " <<non_induced_pairs[i].first<<" "<< non_induced_pairs[i].second<<" --> color: "
 			//<<incompatibility_graph.vertex_color[i]<<endl;
-	}
+	//}
 
 	//create chains
 	int number_colors=1;
@@ -167,11 +167,11 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 			number_colors=incompatibility_graph.vertex_color[i]+1;
 		}
 	}
-	////cout << "number colors: "<<number_colors<<endl;
+	//cout << "number colors: "<<number_colors<<endl;
 
 	vector<Graph<int>> chains_computed;
 	for (int color=0;color<number_colors;color++){
-		////cout<< "chain for color: "<<color<<endl;
+		//cout<< "chain for color: "<<color<<endl;
 		Graph<int> pre_chain;
 		pre_chain=p;
 		for (int j=0;j<incompatibility_graph.vertex_color.size();j++){
@@ -180,8 +180,10 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				pre_chain.add_outedges(non_induced_pairs[j].first,{non_induced_pairs[j].second});
 			}
 		}
+		//cout <<"avant transitivite"<<endl;
 		Graph<int> chain;
 		chain.compute_transitive_closure(pre_chain);
+		//cout <<"apres transitivite"<<endl;
 		//chain.print_edges();
 		chains_computed.push_back(chain);
 	}

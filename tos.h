@@ -25,9 +25,9 @@ public:
 	vector<vector<chain>> paths;
 
 	Tos(Config *cfg);
-	void compute_views(Config *cfg);
-	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node);
-	void compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node);
+	void compute_views(Config *cfg, int *storage);
+	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, int *storage);
+	void compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *storage);
 	vector<id> compute_skyline(Config *cfg);
 	void define_paths(vector<Preference> p, Config *cfg);
 	void chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg);
@@ -38,7 +38,7 @@ Tos::Tos(Config *cfg){
 	this->paths=vector<vector<chain>>(cfg->dyDim_size);
 }
 
-void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node){
+void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *storage){
 	
 	chain tos_values(cfg->dyDim_val);
 	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
@@ -68,14 +68,15 @@ void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node){
 			view_node[all_permutation[i]]=new chain_tree;
 		}
 		view_node[all_permutation[i]]->ids=cps_tos->skyline_result;
+		*storage=*storage+cps_tos->skyline_result.size();
 	}
 }
 
-void Tos::compute_views(Config *cfg){
+void Tos::compute_views(Config *cfg, int *storage){
 	//cout << "Tos::compute_views"<<endl;
   	
   	if(cfg->dyDim_size==1){
-  		this->compute_view_1d(cfg, this->sky_view);
+  		this->compute_view_1d(cfg, this->sky_view, storage);
   	}
   	else{
 		chain tos_values(cfg->dyDim_val);
@@ -102,13 +103,13 @@ void Tos::compute_views(Config *cfg){
 			{	
 				this->sky_view[all_permutation[j]]=new chain_tree;
 			}		
-  			this->compute_view_recursively(cfg, 1, preference_stack[j], this->sky_view[all_permutation[j]]->chain_child);
+  			this->compute_view_recursively(cfg, 1, preference_stack[j], this->sky_view[all_permutation[j]]->chain_child, storage);
   		}
   	}
   	
 }
 
-void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node){
+void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, int *storage){
 	//cout << "Tos::compute_view_recursively, niveau "<< niveau<<endl;
 
 	chain tos_values(cfg->dyDim_val);
@@ -130,7 +131,7 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 		preference_stack.push_back(p_to);
 		if (niveau<cfg->dyDim_size -1){
 			view_node[all_permutation[j]]=new chain_tree;
-			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[all_permutation[j]]->chain_child);
+			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[all_permutation[j]]->chain_child, storage);
 		}
 		else if (niveau==cfg->dyDim_size-1){
 			Cps *cps_tos = new Cps(cfg);
@@ -144,6 +145,7 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			view_node[all_permutation[j]]=new chain_tree;
 		  	view_node[all_permutation[j]]->ids=cps_tos->skyline_result;
 		  	sort(view_node[all_permutation[j]]->ids.begin(),view_node[all_permutation[j]]->ids.end());
+		  	*storage=*storage+cps_tos->skyline_result.size();
 		}	
 		preference_stack.pop_back();
   	} 
@@ -197,10 +199,10 @@ void Tos::define_paths(vector<Preference> p, Config *cfg){
 	  		// cout <<"ici"<<endl;
 	  		if(path_to_include){
 	  			this->paths[i].push_back(tos_values);
-	  			for (auto p : tos_values){
-	  				cout << p << " : ";
-	  			}
-	  			cout <<endl;
+	  			// for (auto p : tos_values){
+	  			// 	cout << p << " : ";
+	  			// }
+	  			// cout <<endl;
 	  		}
 
 	  	}while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
@@ -210,7 +212,7 @@ void Tos::define_paths(vector<Preference> p, Config *cfg){
 
 vector<id> Tos::compute_skyline(Config *cfg){
 
-	 cout << "Tos::compute_skyline"<<endl;
+	// cout << "Tos::compute_skyline"<<endl;
 	
 	// this->chain_graph_to_vec_representation(chains, cfg);
 
@@ -218,17 +220,17 @@ vector<id> Tos::compute_skyline(Config *cfg){
 	this->chains_vec_cross.clear();
 	Tos::chain_cross(cfg, v, this->paths, 0);
 
-	cout << "chains_vec_cross size: "<<this->chains_vec_cross.size()<<endl;
-	for (int i=0;i<this->chains_vec_cross.size();i++){
-		cout << "croisement " <<i<<endl;
-		for (int j=0;j<this->chains_vec_cross[i].size();j++){
-			for(auto value: this->chains_vec_cross[i][j]){
-				cout << value <<" ";
-			}
-			cout<<endl;	
-		}
-		cout<<endl;
-	}
+	// cout << "chains_vec_cross size: "<<this->chains_vec_cross.size()<<endl;
+	// for (int i=0;i<this->chains_vec_cross.size();i++){
+	// 	cout << "croisement " <<i<<endl;
+	// 	for (int j=0;j<this->chains_vec_cross[i].size();j++){
+	// 		for(auto value: this->chains_vec_cross[i][j]){
+	// 			cout << value <<" ";
+	// 		}
+	// 		cout<<endl;	
+	// 	}
+	// 	cout<<endl;
+	// }
 	//***************************************************
 	// union the skyline of the chains
 	vector<id> result;
@@ -245,7 +247,7 @@ vector<id> Tos::compute_skyline(Config *cfg){
 		// for (int i=0; i<ct->ids.size();i++){
 		// 	cout << ct->ids[i] <<endl;
 		// }
-		cout <<endl;
+		//cout <<endl;
 
 		if(i==0){
 			result=ct->ids;
@@ -282,7 +284,7 @@ vector<id> Tos::compute_skyline(Config *cfg){
 
 void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg){
 		
-	cout << "Tos::chain_graph_to_vec_representation"<<endl;
+	//cout << "Tos::chain_graph_to_vec_representation"<<endl;
 
 	// for (int i=0;i<chains.size();i++){
 	// 	for (int j=0;j<chains[i].size();j++){
@@ -299,7 +301,7 @@ void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, C
 	// transforms chains from graph representation to vector representation
 	vector<vector<chain>> chains_vec(cfg->dyDim_size);
 	for (int i=0;i<cfg->dyDim_size;i++){
-		cout << "Dimension: "<<i<<endl;
+		//cout << "Dimension: "<<i<<endl;
 		for (Graph<int> g : chains[i]){
 			g.print_edges();
 			chain c;
@@ -322,8 +324,8 @@ void Tos::chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, C
 			it=std::set_difference (vertices.begin(), vertices.end(), vertices_added.begin(), vertices_added.end(), v.begin());
 			v.resize(it-v.begin());
 			c.push_back(v[0]);
-			for (int s : c) cout << s << " ";
-			cout <<endl;
+			//for (int s : c) cout << s << " ";
+			//cout <<endl;
 			chains_vec[i].push_back(c);
 		}		
 	}

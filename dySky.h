@@ -33,9 +33,9 @@ class dySky {
 	void print_dataset (vector<Point> data, string name, int d);
 	dySky(Config *cfg);
 	
-	void compute_views(Config* cfg, vector<vector<Order>> preference_orders);
-	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders);
-	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders);
+	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, int *storage);
+	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
+	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
 	void compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global, vector<Order> orders_stack);
 	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference);
 
@@ -129,7 +129,7 @@ int dySky::compute_candidates(Config* cfg){
 
 
 
-void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders){
+void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage){
 	
 	#pragma omp parallel for schedule(dynamic)
 	for(int i=0;i<preference_orders[0].size();i++){
@@ -179,10 +179,11 @@ void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<O
 	  		sky_view[Order(best_value,worst_value)]=new order_tree;
 	  	}
 	  	sky_view[Order(best_value,worst_value)]->ids=sky;
+	  	*storage=*storage+sky.size();
 	}
 }
 
-void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
+void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, int *storage){
 	cout << "dySky::compute_views" <<endl;
 
 	vector<Point> candidates_tuples;
@@ -199,7 +200,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
 
 
 	if (cfg->dyDim_size==1){
-		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders);
+		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders, storage);
 	}
 	else{
 		vector<vector<Order>> orders_stack(preference_orders[0].size());
@@ -230,7 +231,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
 			{
 				this->sky_view[Order(best_value,worst_value)]=new order_tree;;
 			}		
-			compute_view_recursively_md(cfg, 1, branch_dataset, orders_stack[s], this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
+			compute_view_recursively_md(cfg, 1, branch_dataset, orders_stack[s], this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
 		}
 	}
 
@@ -242,7 +243,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders){
 
 }
 
-void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders){
+void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage){
 	
 	//#pragma omp parallel for schedule(dynamic) if (niveau==0)
 	for(int s=0;s<preference_orders[niveau].size();s++){
@@ -273,7 +274,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 			}
 
 			sky_view[Order(best_value,worst_value)]=new order_tree;;
-			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders);
+			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, orders_stack, sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
 		}
 
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -336,7 +337,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 
 		  	sky_view[Order(best_value,worst_value)]=new order_tree;
 		  	sky_view[Order(best_value,worst_value)]->ids=view;
-
+		  	*storage=*storage+view.size();
 		}
 		orders_stack.pop_back();
 	}	

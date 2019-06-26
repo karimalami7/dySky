@@ -84,12 +84,12 @@ int main(int argc, char** argv) {
 
     string const fileName("logs");
     ofstream myFile(fileName);
-
+    int storage;
     bool selectedMethod[]={
-    	false, //dysky_m
+    	true, //dysky_m
     	true, //dysky_v
     	true, //cps
-    	false, //tos
+    	true, //tos
     	true, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,9 @@ int main(int argc, char** argv) {
 		cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;
 		// compute views
 		start_time2=omp_get_wtime();
-		dysky_m.compute_views(cfg, all_orders);
+		storage=0;
+		dysky_m.compute_views(cfg, all_orders, &storage);
+		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
 	}
@@ -140,7 +142,9 @@ int main(int argc, char** argv) {
 		start_time=omp_get_wtime();
 	  	tos.to_dataset=dysky_m.to_dataset;
 	  	tos.po_dataset=dysky_m.po_dataset;
-	  	tos.compute_views(cfg);
+	  	storage=0;
+	  	tos.compute_views(cfg, &storage);
+	  	cerr<<"--> Total storage: "<< storage << endl;
 	  	cerr<<"--> Time for all TOS: "<< omp_get_wtime()-start_time << endl;
   	}
 	//************************************************
@@ -157,7 +161,9 @@ int main(int argc, char** argv) {
 		start_time=omp_get_wtime();
 		arg.to_dataset=dysky_m.to_dataset;
 		arg.po_dataset=dysky_m.po_dataset;
-		arg.compute_views(cfg);
+		storage=0;
+		arg.compute_views(cfg, &storage);
+		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
 	}	
   	//***********************************************
@@ -248,7 +254,8 @@ int main(int argc, char** argv) {
 			dysky_v.compute_candidates(cfg);
 			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
 			start_time2=omp_get_wtime();
-			dysky_v.compute_views(cfg, workload[q].preference_orders);
+			storage=0;
+			dysky_v.compute_views(cfg, workload[q].preference_orders, &storage);
 			cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;		
 			start_time2=omp_get_wtime();
 			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
