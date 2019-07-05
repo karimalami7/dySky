@@ -33,13 +33,16 @@ class dySky {
 	void print_dataset (vector<Point> data, string name, int d);
 	dySky(Config *cfg);
 	
+	void views_selection(Config* cfg);
 	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, int *storage);
 	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
 	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
 	void compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global, vector<Order> orders_stack);
 	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference);
-
+	
 };
+
+int knapSack(int W, int wt[], int val[], int n); 
 
 dySky::dySky(Config *cfg){
 	this->po_dataset=vector<vector<int>>(cfg->dataset_size);
@@ -124,6 +127,53 @@ int dySky::compute_candidates(Config* cfg){
   //       } 
   //       monFlux1 << this->po_dataset[this->candidates[i]][0]<< endl;
   //   }
+
+}
+
+void dySky::views_selection(Config* cfg){
+	
+	cout <<sky_view.size()<<endl;
+
+
+	//generate workload
+
+	vector<Query> workload(cfg->dyDim_val);
+	for (int q=0; q<workload.size(); q++){
+		workload[q].generate_preference(cfg);
+		workload[q].graph_to_orderPairs(cfg);	
+	}
+
+	// compute gain of each order
+	unordered_map<Order, int, pairhash> gain;
+	for (int q=0; q<workload.size(); q++){
+		for (int i=0;i<workload[q].preference_orders[0].size();i++){
+			gain[workload[q].preference_orders[0][i]]++;
+		}
+	}
+
+	// fill weight and value arrays
+
+	int *wt = new int[gain.size()];
+	int *val = new int[gain.size()];
+
+	int i=0;
+	for (auto it=gain.begin(); it!=gain.end(); it++){
+		auto it2=sky_view.find(it->first);
+		if(it2!=sky_view.end()){
+			wt[i]=it2->second->ids.size();
+			val[i]=it->second;
+		}
+		else{
+			cout<<"error, view not found"<<endl;
+		}
+		i++;
+	}
+
+	for (int i=0; i<gain.size();i++){
+		cout << i <<" : "<<wt[i] << "  " << val[i] <<endl;
+	}
+
+	cout << knapSack(10000, wt, val, gain.size()) << endl;
 
 }
 
@@ -239,7 +289,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 	// for (auto it=this->sky_view.begin();it!=this->sky_view.end();it++){
 	// 	views_total_storage+=(it->second)->ids.size();
 	// }
-	// //cout << "Views total storage: " << views_total_storage <<endl;
+	// cout << "Views total storage: " << views_total_storage <<endl;
 
 }
 
@@ -451,3 +501,44 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 
 	return result;
 }
+
+// A utility function that returns maximum of two integers 
+int max(int a, int b) { return (a > b)? a : b; } 
+
+// Returns the maximum value that can be put in a knapsack of capacity W 
+int knapSack(int W, int wt[], int val[], int n) 
+{ 
+int i, w; 
+int K[n+1][W+1]; 
+bool keep[n+1][W+1];
+for (i = 0; i <= n; i++) for (w = 0; w <= W; w++) keep[i][w]=0;
+
+
+// Build table K[][] in bottom up manner 
+for (i = 0; i <= n; i++) 
+{ 
+	for (w = 0; w <= W; w++) 
+	{ 
+		if (i==0 || w==0) 
+			K[i][w] = 0; 
+		else if (wt[i-1] <= w && val[i-1] + K[i-1][w-wt[i-1]] > K[i-1][w]){ 
+			K[i][w] = val[i-1] + K[i-1][w-wt[i-1]];
+			keep[i][w]=1; 
+		}	
+		else{
+			K[i][w] = K[i-1][w];
+			keep[i][w]=0;
+		}
+	} 
+} 
+
+int X=W;
+for (i=n; i>=1; i--){
+	if (keep[i][X]==1){
+		cout << "view: " << i-1 << ",gain: "<< val[i-1]<< ",weight: "<< wt[i-1]<<endl;
+		X=X-wt[i-1];
+	}
+}
+
+return K[n][W]; 
+} 

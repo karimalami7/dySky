@@ -87,10 +87,10 @@ int main(int argc, char** argv) {
     int storage;
     bool selectedMethod[]={
     	true, //dysky_m
-    	true, //dysky_v
+    	false, //dysky_v
     	true, //cps
-    	true, //tos
-    	true, //arg
+    	false, //tos
+    	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -124,6 +124,7 @@ int main(int argc, char** argv) {
 		start_time2=omp_get_wtime();
 		storage=0;
 		dysky_m.compute_views(cfg, all_orders, &storage);
+		dysky_m.views_selection(cfg);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
