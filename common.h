@@ -20,6 +20,9 @@
 #include <unordered_set>
 #include <list>
 #include "config.h"
+#include <sys/sysinfo.h>
+#include <stdint.h>
+#include <stdio.h>
 
 using namespace std;
 

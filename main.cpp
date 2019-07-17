@@ -86,11 +86,11 @@ int main(int argc, char** argv) {
     ofstream myFile(fileName);
     int storage;
     bool selectedMethod[]={
-    	true, //dysky_m
+    	false, //dysky_m
     	false, //dysky_v
     	true, //cps
     	false, //tos
-    	false, //arg
+    	true, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -105,6 +105,10 @@ int main(int argc, char** argv) {
 	dysky_m.generate_to_data(cfg);
 	// generate partial order data
 	dysky_m.generate_po_data(cfg);
+	//
+	cfg->to_dataset=dysky_m.to_dataset;
+	cfg->po_dataset=dysky_m.po_dataset;
+	//
 	vector<vector<Order>> all_orders(cfg->dyDim_size);
 	generate_all_orders(cfg,all_orders);
 	double start_time;
@@ -141,8 +145,6 @@ int main(int argc, char** argv) {
 		cerr << "=====TOS=====" <<endl;
 		cout << "=====TOS=====" <<endl;
 		start_time=omp_get_wtime();
-	  	tos.to_dataset=dysky_m.to_dataset;
-	  	tos.po_dataset=dysky_m.po_dataset;
 	  	storage=0;
 	  	tos.compute_views(cfg, &storage);
 	  	cerr<<"--> Total storage: "<< storage << endl;
@@ -160,8 +162,6 @@ int main(int argc, char** argv) {
 		cerr << "=====Arg=====" <<endl;
 		cout << "=====Arg=====" <<endl;
 		start_time=omp_get_wtime();
-		arg.to_dataset=dysky_m.to_dataset;
-		arg.po_dataset=dysky_m.po_dataset;
 		storage=0;
 		arg.compute_views(cfg, &storage);
 		cerr<<"--> Total storage: "<< storage << endl;
@@ -275,8 +275,6 @@ int main(int argc, char** argv) {
 			// start for preference decompositon
 			//cerr << "---preference decompositon---"<<endl;
 			Cps cps(cfg);
-			cps.to_dataset=dysky_m.to_dataset;
-			cps.po_dataset=dysky_m.po_dataset;
 			start_time=omp_get_wtime();
 			start_time2=omp_get_wtime();
 			for (int i=0; i<workload[q].preference.size();i++){
@@ -285,7 +283,7 @@ int main(int argc, char** argv) {
 			cps.encoding(cfg);
 			cerr<<"--> Time for preference decompositon: "<< omp_get_wtime()-start_time2 << endl;
 			start_time2=omp_get_wtime();
-			results["cps"]=cps.compute_skyline(cfg);
+			results["cps"]=cps.compute_skyline(cfg, false);
 			cerr<< "--> Result size: "<<results["cps"]<<endl;
 			cerr<< "--> Time for query answering: "<< omp_get_wtime()-start_time2 << endl;
 			processing_time["cps"]=processing_time["cps"]+(omp_get_wtime()-start_time);

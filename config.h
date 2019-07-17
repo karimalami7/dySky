@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 typedef struct Config {
 	int dataset_size;
 	int statDim_size;
@@ -18,6 +20,8 @@ typedef struct Config {
 	int dyDim_val;
 	int workload_size;
 	bool verbose;
+	vector<int*> to_dataset;
+	vector<vector<int>> po_dataset;
 } Config;
 
 

@@ -27,7 +27,7 @@ public:
 	vector<vector<vector<int>>> values_encoding;
 
 	void decompose_preference(Graph<int> p, Config *cfg, int i);
-	int compute_skyline(Config *cfg);
+	int compute_skyline(Config *cfg, bool own_data);
 	void encoding(Config *cfg);
 	int compute_skyline_perDimension(Config *cfg, int index_dim);
 	Cps(Config *cfg);
@@ -231,14 +231,14 @@ int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
 	////cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+this->chains[index_dim].size(), full_Space);
-	vector<Point> temp_dataset(to_dataset.size());
-	for (int i=0; i< this->to_dataset.size(); i++){
+	vector<Point> temp_dataset(cfg->to_dataset.size());
+	for (int i=0; i< cfg->to_dataset.size(); i++){
 		Point p=(int*)malloc((cfg->statDim_size+this->chains[index_dim].size()+1)*sizeof(int));
 		for (int j=0;j<=cfg->statDim_size;j++){
-			p[j]=to_dataset[i][j];
+			p[j]=cfg->to_dataset[i][j];
 		}
 		for (int k=0;k<this->chains[index_dim].size();k++){
-			p[cfg->statDim_size+k+1]=values_encoding[index_dim][po_dataset[i][index_dim]][k];
+			p[cfg->statDim_size+k+1]=values_encoding[index_dim][cfg->po_dataset[i][index_dim]][k];
 		}
 		temp_dataset[i]=p;
 	}
@@ -247,7 +247,7 @@ int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
    	cerr << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
 }
 
-int Cps::compute_skyline(Config *cfg){
+int Cps::compute_skyline(Config *cfg, bool own_data){
 
 	int card_virtual_dimensions=0;
 	for (auto c : this->chains) card_virtual_dimensions+=c.size();
@@ -256,22 +256,44 @@ int Cps::compute_skyline(Config *cfg){
 	//cout << All << " = All"<<endl;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+card_virtual_dimensions, full_Space);
-	vector<Point> temp_dataset(to_dataset.size());
-	for (int i=0; i< this->to_dataset.size(); i++){
+	vector<Point> temp_dataset;
 
-		Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
-		for (int j=0;j<=cfg->statDim_size;j++){
-			p[j]=to_dataset[i][j];
-		}
-		int index_dim_virt=cfg->statDim_size+1;
-		for (int j=0; j<this->chains.size(); j++){
-			for (int k=0;k<this->chains[j].size();k++){
-				p[index_dim_virt]=values_encoding[j][po_dataset[i][j]][k];
-				index_dim_virt++;
+	if(own_data){
+		temp_dataset=vector<Point>(this->to_dataset.size());
+		for (int i=0; i< this->to_dataset.size(); i++){
+
+			Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
+			for (int j=0;j<=cfg->statDim_size;j++){
+				p[j]=this->to_dataset[i][j];
 			}
+			int index_dim_virt=cfg->statDim_size+1;
+			for (int j=0; j<this->chains.size(); j++){
+				for (int k=0;k<this->chains[j].size();k++){
+					p[index_dim_virt]=values_encoding[j][this->po_dataset[i][j]][k];
+					index_dim_virt++;
+				}
+			}
+			temp_dataset[i]=p;
 		}
-		temp_dataset[i]=p;
 	}
+	else{
+		temp_dataset=vector<Point>(cfg->to_dataset.size());
+		for (int i=0; i< cfg->to_dataset.size(); i++){
+			Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
+			for (int j=0;j<=cfg->statDim_size;j++){
+				p[j]=cfg->to_dataset[i][j];
+			}
+			int index_dim_virt=cfg->statDim_size+1;
+			for (int j=0; j<this->chains.size(); j++){
+				for (int k=0;k<this->chains[j].size();k++){
+					p[index_dim_virt]=values_encoding[j][cfg->po_dataset[i][j]][k];
+					index_dim_virt++;
+				}
+			}
+			temp_dataset[i]=p;
+		}
+	}
+
 
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;

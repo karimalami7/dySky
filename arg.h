@@ -70,22 +70,31 @@ void Arg::compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, int 
 	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
 		Query q;
 		q.generate_preference(cfg);
-		Cps cps(cfg);
-		cps.decompose_preference(q.preference[0],cfg,0);	
-		cps.encoding(cfg);
-		cps.to_dataset=this->to_dataset;
-		cps.po_dataset=this->po_dataset;
-		cps.compute_skyline(cfg);
+		Cps *cps_arg=new Cps(cfg);
+		cps_arg->decompose_preference(q.preference[0],cfg,0);	
+		cps_arg->encoding(cfg);
+		cps_arg->compute_skyline(cfg, false);
 		preference_tree *pt =new preference_tree;
 		pt->p=q.preference[0];
-		pt->ids=cps.skyline_result;
+		pt->ids.swap(cps_arg->skyline_result);
 		view_node.push_back(pt);
-		*storage=*storage+cps.skyline_result.size();
+		*storage=*storage+cps_arg->skyline_result.size();
+		delete cps_arg;
 	}
 }
 
 void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node, int *storage){
 	//cout << "Arg::compute_view_recursively niveau: "<< niveau<<endl; 
+	
+	//************************************
+	// memory
+	struct sysinfo sys_info;
+	uint64_t info_ram;
+	if (!(sysinfo(&sys_info) == -1)) {
+		info_ram=sys_info.totalram - sys_info.freeram;
+		info_ram = (info_ram * sys_info.mem_unit)/1024;
+		printf("memory %d\n", info_ram);
+	}
 	
 	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
 		Query q;
@@ -102,19 +111,18 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 		}
 		else{
 			preference_stack.push_back(q.preference[0]);
-			Cps cps(cfg);
+			Cps *cps_arg=new Cps(cfg);
 			for (int i=0;i<cfg->dyDim_size;i++){
-				cps.decompose_preference(preference_stack[i],cfg,i);	
+				cps_arg->decompose_preference(preference_stack[i],cfg,i);	
 			}
-			cps.encoding(cfg);
-			cps.to_dataset=this->to_dataset;
-			cps.po_dataset=this->po_dataset;
-			cps.compute_skyline(cfg);
+			cps_arg->encoding(cfg);
+			cps_arg->compute_skyline(cfg, false);
 			preference_tree *pt =new preference_tree;
 			pt->p=q.preference[0];
-			pt->ids=cps.skyline_result;
+			pt->ids.swap(cps_arg->skyline_result);
 			view_node.push_back(pt);
-			*storage=*storage+cps.skyline_result.size();
+			*storage=*storage+cps_arg->skyline_result.size();
+			delete cps_arg;
 		}
 		preference_stack.pop_back();
 	}
@@ -145,28 +153,27 @@ void Arg::compute_skyline(Config *cfg, Query q){
 
 	//for (int d=0;d<cfg->dyDim_size;d++) cout << refinement_found[d]<<endl;
 	
-	Cps cps(cfg);
+	Cps cps_arg(cfg);
 	for (int d=0;d<cfg->dyDim_size;d++){
-		cps.decompose_preference(q.preference[d],cfg,d);	
+		cps_arg.decompose_preference(q.preference[d],cfg,d);	
 	}
 
 	if ( adjacent_find( refinement_found.begin(), refinement_found.end(), not_equal_to<bool>() ) == refinement_found.end() && refinement_found[0]==true){
 		cerr << "Refinement found"<<endl; 
 		for (int j=0; j<pt[i]->ids.size();j++){
-			cps.to_dataset.push_back(this->to_dataset[pt[i]->ids[j]]);
-			cps.po_dataset.push_back(this->po_dataset[pt[i]->ids[j]]);
+			cps_arg.to_dataset.push_back(cfg->to_dataset[pt[i]->ids[j]]);
+			cps_arg.po_dataset.push_back(cfg->po_dataset[pt[i]->ids[j]]);
 		}
-		cerr <<"dataset size: "<<cps.to_dataset.size()<<endl; 
+		cerr <<"dataset size: "<<cps_arg.to_dataset.size()<<endl; 
+		cps_arg.encoding(cfg);
+		cps_arg.compute_skyline(cfg, true);
+		this->skyline_result=cps_arg.skyline_result;
 	}
 	else{
 		cerr << "No view found"<<endl;
-		cps.to_dataset=this->to_dataset;
-		cps.po_dataset=this->po_dataset; 
+		cps_arg.encoding(cfg);
+		cps_arg.compute_skyline(cfg, false);
+		this->skyline_result=cps_arg.skyline_result;
 	}
-	
-
-	cps.encoding(cfg);
-	cps.compute_skyline(cfg);
-	this->skyline_result=cps.skyline_result;
 	
 }

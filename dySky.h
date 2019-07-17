@@ -37,7 +37,7 @@ class dySky {
 	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, int *storage);
 	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
 	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset,vector<Order> orders_stack, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, int *storage);
-	void compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global, vector<Order> orders_stack);
+	void compute_other_nsky(Config *cfg, vector<id> &nsky_for_all_orders_global, vector<id> dataset, vector<Order> orders_stack);
 	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference);
 	
 };
@@ -116,6 +116,16 @@ int dySky::compute_candidates(Config* cfg){
     }
     sort (this->candidates.begin(),this->candidates.end());   
     cout << "Candidate set size: "<<this->candidates.size()<<endl;
+
+    vector<id> all_ids=vector<id>(cfg->dataset_size);
+    for (int i=0; i<cfg->dataset_size;i++){
+    	all_ids[i]=i;
+    }
+	this->never_sky=vector<id>(cfg->dataset_size);  
+  	std::vector<id>::iterator it4;
+  	it4=std::set_difference(all_ids.begin(), all_ids.end(), candidates.begin(), candidates.end(), this->never_sky.begin());                        
+  	this->never_sky.resize(it4-this->never_sky.begin());
+  	cout << "never_sky set size: "<<this->never_sky.size()<<endl;
 
  	// string const nomFichier1("candidates.csv");
   //   ofstream monFlux1(nomFichier1.c_str());
@@ -214,22 +224,34 @@ void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<O
 
 	  	//***************************************
 	  	//add other candidates
-	  	for (int i=0; i< this->candidates.size();i++){
-	  		if( po_dataset[this->candidates[i]][0]!=best_value && po_dataset[this->candidates[i]][0]!=worst_value){
-	  			sky.push_back(this->candidates[i]);
-	  		}
-	  	}
+	  	// for (int i=0; i< this->candidates.size();i++){
+	  	// 	if( po_dataset[this->candidates[i]][0]!=best_value && po_dataset[this->candidates[i]][0]!=worst_value){
+	  	// 		sky.push_back(this->candidates[i]);
+	  	// 	}
+	  	// }
 
 	  	//******************************************
 	  	// sort ids
 	  	std::sort (sky.begin(),sky.end());
 
+		//******************************************
+		// compute dominated points
+		vector<id> branch_dataset_ids(branch_dataset.size());
+		for (int b=0;b<branch_dataset.size();b++){
+			branch_dataset_ids[b]=branch_dataset[b][0];
+		}
+		//sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
+		std::vector<id> notSky(branch_dataset_ids.size());   
+	  	std::vector<id>::iterator it4;
+	  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
+	  	notSky.resize(it4-notSky.begin());
+
 	  	#pragma omp critical
 	  	{
 	  		sky_view[Order(best_value,worst_value)]=new order_tree;
 	  	}
-	  	sky_view[Order(best_value,worst_value)]->ids=sky;
-	  	*storage=*storage+sky.size();
+	  	sky_view[Order(best_value,worst_value)]->ids=notSky;
+	  	*storage=*storage+notSky.size();
 	}
 }
 
@@ -355,7 +377,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 
 			sort(view.begin(),view.end());
 			
-			//MINUS
+			//MINUS : get non skyline points in branch_dataset
 			vector<id> branch_dataset_ids(branch_dataset.size());
 			for (int b=0;b<branch_dataset.size();b++){
 				branch_dataset_ids[b]=branch_dataset[b][0];
@@ -367,33 +389,40 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 		  	notSky.resize(it4-notSky.begin());
 
 		  	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		  	// add points not included in the partition and remove those dominated
-		  	vector<id> sky_for_all_orders_global=this->candidates;
-		  	compute_other_sky(cfg, sky_for_all_orders_global, orders_stack);
-
-			//UNION
-			std::vector<id> h(this->to_dataset.size());   
+		  	// add points not included in the partition to view, but remove those dominated
+		  	vector<id> nsky_for_all_orders_global;
+		  	compute_other_nsky(cfg, nsky_for_all_orders_global, this->candidates, orders_stack);
+			
+			//UNION 
+			std::vector<id> h(nsky_for_all_orders_global.size()+notSky.size());   
 		  	std::vector<id>::iterator it3;
-		  	it3=std::set_union(view.begin(), view.end(), sky_for_all_orders_global.begin(), sky_for_all_orders_global.end(), h.begin());                        
+		  	it3=std::set_union(notSky.begin(), notSky.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), h.begin());                        
 		  	h.resize(it3-h.begin());   
-		  	view=h; 
+		  	notSky=h; 
+			
+			//UNION 
+			// std::vector<id> h(this->to_dataset.size());   
+		 //  	std::vector<id>::iterator it3;
+		 //  	it3=std::set_union(view.begin(), view.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), h.begin());                        
+		 //  	h.resize(it3-h.begin());   
+		 //  	view=h; 
 
 		  	//MINUS
-			std::vector<id> g(view.size());   
-		  	std::vector<id>::iterator it5;
-		  	it5=std::set_difference(view.begin(), view.end(), notSky.begin(), notSky.end(), g.begin());                        
-		  	g.resize(it5-g.begin());   
-		  	view=g; 
+			// std::vector<id> g(view.size());   
+		 //  	std::vector<id>::iterator it5;
+		 //  	it5=std::set_difference(view.begin(), view.end(), notSky.begin(), notSky.end(), g.begin());                        
+		 //  	g.resize(it5-g.begin());   
+		 //  	view=g; 
 
 		  	sky_view[Order(best_value,worst_value)]=new order_tree;
-		  	sky_view[Order(best_value,worst_value)]->ids=view;
-		  	*storage=*storage+view.size();
+		  	sky_view[Order(best_value,worst_value)]->ids=notSky;
+		  	*storage=*storage+notSky.size();
 		}
 		orders_stack.pop_back();
 	}	
 }
 
-void dySky::compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global, vector<Order> orders_stack){
+void dySky::compute_other_nsky(Config *cfg, vector<id> &nsky_for_all_orders_global, vector<id> dataset, vector<Order> orders_stack){
 
 	for(int f=0;f<cfg->dyDim_size;f++)
   	{		  		
@@ -449,20 +478,46 @@ void dySky::compute_other_sky(Config *cfg, vector<id> &sky_for_all_orders_global
 	    for (auto it_partition=partitions.begin(); it_partition!=partitions.end(); it_partition++){
 	    	vector<id> Skyline;
 	    	Skyline=subspaceSkylineSize_TREE(full_Space, it_partition->second);
-	    	sky_for_all_orders.insert(sky_for_all_orders.end(),
-	    		Skyline.begin(), Skyline.end());
-	    }
-	    sky_for_all_orders.insert(sky_for_all_orders.begin(), directly_sky.begin(),directly_sky.end());
 
-	    sort(sky_for_all_orders.begin(),sky_for_all_orders.end());
+	    	//**************************************
+	    	// sort skyline ids
+	    	sort(Skyline.begin(),Skyline.end());
+
+	    	//**************************************
+	    	// Skyline minus it_partition->second
+
+	    	vector<id> partition_ids(it_partition->second.size());
+	    	for (int i=0; i<partition_ids.size();i++ ){
+	    		partition_ids[i]=it_partition->second[i][0];
+	    	}
+	    	sort(partition_ids.begin(), partition_ids.end());
+	    	vector<id> notSky(it_partition->second.size());   
+		  	vector<id>::iterator it;
+		  	it=std::set_difference(partition_ids.begin(), partition_ids.end(), Skyline.begin(), Skyline.end(), notSky.begin());                        
+		  	notSky.resize(it-notSky.begin());   
+ 			    	
+		  	//**************************************
+		  	// notSky union nsky_for_all_orders_global
+
+		  	vector<id> unionNsky(nsky_for_all_orders_global.size()+notSky.size());
+		  	it=std::set_union(nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), notSky.begin(), notSky.end(), unionNsky.begin());
+		  	unionNsky.resize(it-unionNsky.begin());
+		  	nsky_for_all_orders_global=unionNsky;
+
+	    	// sky_for_all_orders.insert(sky_for_all_orders.end(),
+	    	// 	Skyline.begin(), Skyline.end());
+	    }
+	    // sky_for_all_orders.insert(sky_for_all_orders.begin(), directly_sky.begin(),directly_sky.end());
+
+	    sort(nsky_for_all_orders_global.begin(),nsky_for_all_orders_global.end());
 
 	    //****************************************************************
 	  	//INTERSECTION
-	  	std::vector<id> l(this->to_dataset.size());   
-	  	std::vector<id>::iterator it2;
-	  	it2=std::set_intersection(sky_for_all_orders.begin(), sky_for_all_orders.end(), sky_for_all_orders_global.begin(), sky_for_all_orders_global.end(), l.begin());                        
-	  	l.resize(it2-l.begin());   
-	  	sky_for_all_orders_global=l; 
+	  	// std::vector<id> l(this->to_dataset.size());   
+	  	// std::vector<id>::iterator it2;
+	  	// it2=std::set_intersection(sky_for_all_orders.begin(), sky_for_all_orders.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), l.begin());                        
+	  	// l.resize(it2-l.begin());   
+	  	// nsky_for_all_orders_global=l; 
 
   	}
 }
@@ -477,7 +532,10 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 	// 	cout<<endl;
 	// }
 
-	vector<id> result;
+	vector<id> result=vector<id>(cfg->dataset_size);
+    for (int i=0; i<cfg->dataset_size;i++){
+    	result[i]=i;
+    }
 
 	for (int i=0;i<preference_cross.size();i++){ // loop on orders
 		order_tree *ot=sky_view[preference_cross[i][0]];
@@ -486,18 +544,21 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 			ot=ot->order_child[preference_cross[i][j]];
 			j++;
 		}
-		if(i==0){ // if there is one order
-			result=ot->ids;
-		}
-		else{
-			std::vector<id> v(result.size());   
-		  	std::vector<id>::iterator it;
-		  	it=std::set_intersection(result.begin(), result.end(), ot->ids.begin(), ot->ids.end(), v.begin());                        
-		  	v.resize(it-v.begin());   
-		  	result=v; 			
-		}
-  
+
+		std::vector<id> v(result.size());   
+	  	std::vector<id>::iterator it;
+	  	it=std::set_difference(result.begin(), result.end(), ot->ids.begin(), ot->ids.end(), v.begin());                        
+	  	v.resize(it-v.begin());   
+	  	result=v; 			
 	}
+
+	std::vector<id> v(result.size());   
+  	std::vector<id>::iterator it;
+  	it=std::set_difference(result.begin(), result.end(), this->never_sky.begin(), this->never_sky.end(), v.begin());                        
+  	v.resize(it-v.begin());   
+  	result=v; 	
+
+	//result.insert(result.end(), this->never_sky.begin(), this->never_sky.end());
 
 	return result;
 }

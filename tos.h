@@ -60,15 +60,14 @@ void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *
 		Cps *cps_tos = new Cps(cfg);
 		cps_tos->decompose_preference(p_to,cfg,0);	
 		cps_tos->encoding(cfg);
-		cps_tos->to_dataset=this->to_dataset;
-		cps_tos->po_dataset=this->po_dataset;
-		cps_tos->compute_skyline(cfg);
+		cps_tos->compute_skyline(cfg, false);
 		#pragma omp critical
 		{
 			view_node[all_permutation[i]]=new chain_tree;
 		}
 		view_node[all_permutation[i]]->ids=cps_tos->skyline_result;
 		*storage=*storage+cps_tos->skyline_result.size();
+		delete cps_tos;
 	}
 }
 
@@ -87,6 +86,9 @@ void Tos::compute_views(Config *cfg, int *storage){
 		}
 		while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
 
+
+		//*************************************
+
 		vector<vector<Preference>> preference_stack(all_permutation.size());
 		
 		#pragma omp parallel for schedule(dynamic)
@@ -104,6 +106,11 @@ void Tos::compute_views(Config *cfg, int *storage){
 				this->sky_view[all_permutation[j]]=new chain_tree;
 			}		
   			this->compute_view_recursively(cfg, 1, preference_stack[j], this->sky_view[all_permutation[j]]->chain_child, storage);
+
+  			//
+			// info_ram=sys_info.totalram - sys_info.freeram;
+			// info_ram = (info_ram * sys_info.mem_unit)/1024;
+			// printf("memory %d\n", info_ram);	
   		}
   	}
   	
@@ -119,6 +126,16 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 		all_permutation.push_back(tos_values);
 	}
 	while ( std::next_permutation(tos_values.begin(),tos_values.begin()+cfg->dyDim_val) );
+
+	//************************************
+	// memory
+	struct sysinfo sys_info;
+	uint64_t info_ram;
+	if (!(sysinfo(&sys_info) == -1)) {
+		info_ram=sys_info.totalram - sys_info.freeram;
+		info_ram = (info_ram * sys_info.mem_unit)/1024;
+		printf("memory %d\n", info_ram);
+	}
 
 	for (int j=0;j<all_permutation.size();j++) {
   	  	Preference p_to;
@@ -139,13 +156,12 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 				cps_tos->decompose_preference(preference_stack[i],cfg,i);	
 			}
 			cps_tos->encoding(cfg);
-			cps_tos->to_dataset=this->to_dataset;
-			cps_tos->po_dataset=this->po_dataset;
-			cps_tos->compute_skyline(cfg);
+			cps_tos->compute_skyline(cfg, false);
 			view_node[all_permutation[j]]=new chain_tree;
 		  	view_node[all_permutation[j]]->ids=cps_tos->skyline_result;
 		  	sort(view_node[all_permutation[j]]->ids.begin(),view_node[all_permutation[j]]->ids.end());
 		  	*storage=*storage+cps_tos->skyline_result.size();
+			delete cps_tos;
 		}	
 		preference_stack.pop_back();
   	} 
