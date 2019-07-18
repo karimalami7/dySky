@@ -20,6 +20,7 @@ class dySky {
 	public:
 	vector<Point> to_dataset;
 	vector<vector<int>> po_dataset;
+	vector<map<int, vector<int>>> partition_ids;
 	//vector<id> always_sky;
 	vector<id> never_sky;
 	vector<id> candidates;
@@ -43,6 +44,7 @@ class dySky {
 };
 
 int knapSack(int W, int wt[], int val[], int n); 
+void comb(int N, vector<vector<int>> &all_combination);
 
 dySky::dySky(Config *cfg){
 	this->po_dataset=vector<vector<int>>(cfg->dataset_size);
@@ -270,11 +272,21 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 		candidates_tuples.push_back(p);
 	}
 
-
 	if (cfg->dyDim_size==1){
 		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders, storage);
 	}
-	else{
+	else{ // case of multi-dimensions
+
+		//*******************************************
+		// compute all partitions for all dimensions, l * m vector
+
+		this->partition_ids=vector<map<int, vector<int>>>(cfg->dyDim_size);
+		for (int i=0; i<this->candidates.size(); i++){
+			for (int j=0; j<cfg->dyDim_size; j++){
+				partition_ids[j][this->po_dataset[this->candidates[i]][j]].push_back(this->candidates[i]);
+			}	
+		}
+
 		vector<vector<Order>> orders_stack(preference_orders[0].size());
 		#pragma omp parallel for schedule(dynamic)
 		for(int s=0;s<preference_orders[0].size();s++){
@@ -389,7 +401,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 		  	notSky.resize(it4-notSky.begin());
 
 		  	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		  	// add points not included in the partition to view, but remove those dominated
+		  	// add other nsky
 		  	vector<id> nsky_for_all_orders_global;
 		  	compute_other_nsky(cfg, nsky_for_all_orders_global, this->candidates, orders_stack);
 			
@@ -399,20 +411,6 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 		  	it3=std::set_union(notSky.begin(), notSky.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), h.begin());                        
 		  	h.resize(it3-h.begin());   
 		  	notSky=h; 
-			
-			//UNION 
-			// std::vector<id> h(this->to_dataset.size());   
-		 //  	std::vector<id>::iterator it3;
-		 //  	it3=std::set_union(view.begin(), view.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), h.begin());                        
-		 //  	h.resize(it3-h.begin());   
-		 //  	view=h; 
-
-		  	//MINUS
-			// std::vector<id> g(view.size());   
-		 //  	std::vector<id>::iterator it5;
-		 //  	it5=std::set_difference(view.begin(), view.end(), notSky.begin(), notSky.end(), g.begin());                        
-		 //  	g.resize(it5-g.begin());   
-		 //  	view=g; 
 
 		  	sky_view[Order(best_value,worst_value)]=new order_tree;
 		  	sky_view[Order(best_value,worst_value)]->ids=notSky;
@@ -422,105 +420,88 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 	}	
 }
 
-void dySky::compute_other_nsky(Config *cfg, vector<id> &nsky_for_all_orders_global, vector<id> dataset, vector<Order> orders_stack){
+void dySky::compute_other_nsky(Config *cfg, vector<id> &nsky_for_all_orders_global, vector<id> dataset, vector<Order> orders_stack){		  		
 
-	for(int f=0;f<cfg->dyDim_size;f++)
-  	{		  		
+	int f,l;
+
+	vector<vector<int>> all_combination;
+	comb(cfg->dyDim_size, all_combination);
+	vector<int> all_dim(cfg->dyDim_size); for (int i=0; i<cfg->dyDim_size; i++) all_dim[i]=i;
+
+	for (auto combination : all_combination){
+
+		// **********************************************
+		// for each combination, compute
+		//
+		f=combination[0];
+		vector<int> la(all_dim.size());
+		vector<int>::iterator it;
+		it=std::set_difference(all_dim.begin(), all_dim.end(), combination.begin(), combination.end(), la.begin());
+		la.resize(it-la.begin());
+		l=la[0];
+		cout << "f" << f <<" l "<< l <<endl;
+
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// partitioner par rapport aux valeurs best_value, worst_value dans la dimension "niveau"
 
-		vector<Point> to;
-		vector<vector<int>> po;
-		vector<id> directly_sky;
-		for (int i=0; i<this->candidates.size(); i++){
-			//cout <<this->candidates[i]<<" : "<<po_dataset[this->candidates[i]][niveau]<< " : "<<best_value <<" : "<<worst_value<<endl;
-			if (this->po_dataset[this->candidates[i]][f]==orders_stack[f].first){
-				//cout << this->candidates[i]<<endl;
-				Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
-				vector<int> t;
-				for (int j=0;j<=cfg->statDim_size;j++) p[j]=this->to_dataset[this->candidates[i]][j];
-				p[cfg->statDim_size+1]=0;
-				for (int j=0;j<cfg->dyDim_size;j++) if (j!=f) t.push_back(this->po_dataset[this->candidates[i]][j]);
-				to.push_back(p);
-				po.push_back(t);
+		for (int i=0; i<this->partition_ids[f].size(); i++){
+			vector<Point> to;
+			for (int e=0; e<this->partition_ids[f][i].size(); e++){
 
-			}else if (this->po_dataset[this->candidates[i]][f]==orders_stack[f].second){
-				//cout << this->candidates[i]<<endl;
-				Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
-				vector<int> t;
-				for (int j=0;j<=cfg->statDim_size;j++) p[j]=this->to_dataset[this->candidates[i]][j];
-				p[cfg->statDim_size+1]=1;
-				for (int j=0;j<cfg->dyDim_size;j++) if (j!=f) t.push_back(this->po_dataset[this->candidates[i]][j]);
-				to.push_back(p);
-				po.push_back(t);
-			}
-			else{
-				directly_sky.push_back(this->candidates[i]);
-			}
+				if (this->po_dataset[this->partition_ids[f][i][e]][l]==orders_stack[l].first){
+					Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
+					for (int j=0;j<=cfg->statDim_size;j++) p[j]=this->to_dataset[this->partition_ids[f][i][e]][j];
+					p[cfg->statDim_size+1]=0;
+					to.push_back(p);
+
+				}else if (this->po_dataset[this->partition_ids[f][i][e]][l]==orders_stack[l].second){
+					Point p=(int*)malloc((cfg->statDim_size+2)*sizeof(int));
+					for (int j=0;j<=cfg->statDim_size;j++) p[j]=this->to_dataset[this->partition_ids[f][i][e]][j];
+					p[cfg->statDim_size+1]=1;
+					to.push_back(p);
+				}
+
+			}	
+
+			if (to.size()!=0){
+
+				//******************************************
+				// 1/ compute skyline for every partition
+				int All = (1<<cfg->statDim_size+1)-1;
+				vector<Space> full_Space;
+				listeAttributsPresents(All, cfg->statDim_size+1, full_Space);
+				vector<id> sky_for_all_orders;
+		    	vector<id> Skyline;
+		    	Skyline=subspaceSkylineSize_TREE(full_Space, to);
+		    	sort(Skyline.begin(),Skyline.end());
+
+		    	//**************************************
+		    	// 2 Skyline minus it_partition->second
+		    	vector<id> partition_ids(to.size());
+		    	for (int i=0; i<partition_ids.size();i++ ){
+		    		partition_ids[i]=to[i][0];
+		    	}
+		    	sort(partition_ids.begin(), partition_ids.end());
+		    	vector<id> notSky(to.size());  
+			  	vector<id>::iterator it;
+			  	it=std::set_difference(partition_ids.begin(), partition_ids.end(), Skyline.begin(), Skyline.end(), notSky.begin());                        
+			  	notSky.resize(it-notSky.begin());  
+	 			    	
+			  	//**************************************
+			  	// 3 notSky union nsky_for_all_orders_global
+
+			  	vector<id> unionNsky(nsky_for_all_orders_global.size()+notSky.size());
+			  	it=std::set_union(nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), notSky.begin(), notSky.end(), unionNsky.begin());
+			  	unionNsky.resize(it-unionNsky.begin());
+			  	nsky_for_all_orders_global=unionNsky;
+
+			    sort(nsky_for_all_orders_global.begin(),nsky_for_all_orders_global.end());
+
+			}    
 		}
-
-		//**************************************************************************
-		// partitionner par rapport aux valeurs égales sur les attributes dynamiques
-		map<vector<int>, vector<Point>> partitions;
-		auto it_to=to.begin();
-		auto it_po=po.begin();
-		while(it_to!=to.end()){
-			partitions[(*it_po)].push_back(*it_to);
-			it_to++;
-			it_po++;
-		}
-
-		// compute skyline for every partition
-		int All = (1<<cfg->statDim_size+1)-1;
-		vector<Space> full_Space;
-		listeAttributsPresents(All, cfg->statDim_size+1, full_Space);
-		vector<id> sky_for_all_orders;
-	    for (auto it_partition=partitions.begin(); it_partition!=partitions.end(); it_partition++){
-	    	vector<id> Skyline;
-	    	Skyline=subspaceSkylineSize_TREE(full_Space, it_partition->second);
-
-	    	//**************************************
-	    	// sort skyline ids
-	    	sort(Skyline.begin(),Skyline.end());
-
-	    	//**************************************
-	    	// Skyline minus it_partition->second
-
-	    	vector<id> partition_ids(it_partition->second.size());
-	    	for (int i=0; i<partition_ids.size();i++ ){
-	    		partition_ids[i]=it_partition->second[i][0];
-	    	}
-	    	sort(partition_ids.begin(), partition_ids.end());
-	    	vector<id> notSky(it_partition->second.size());   
-		  	vector<id>::iterator it;
-		  	it=std::set_difference(partition_ids.begin(), partition_ids.end(), Skyline.begin(), Skyline.end(), notSky.begin());                        
-		  	notSky.resize(it-notSky.begin());   
- 			    	
-		  	//**************************************
-		  	// notSky union nsky_for_all_orders_global
-
-		  	vector<id> unionNsky(nsky_for_all_orders_global.size()+notSky.size());
-		  	it=std::set_union(nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), notSky.begin(), notSky.end(), unionNsky.begin());
-		  	unionNsky.resize(it-unionNsky.begin());
-		  	nsky_for_all_orders_global=unionNsky;
-
-	    	// sky_for_all_orders.insert(sky_for_all_orders.end(),
-	    	// 	Skyline.begin(), Skyline.end());
-	    }
-	    // sky_for_all_orders.insert(sky_for_all_orders.begin(), directly_sky.begin(),directly_sky.end());
-
-	    sort(nsky_for_all_orders_global.begin(),nsky_for_all_orders_global.end());
-
-	    //****************************************************************
-	  	//INTERSECTION
-	  	// std::vector<id> l(this->to_dataset.size());   
-	  	// std::vector<id>::iterator it2;
-	  	// it2=std::set_intersection(sky_for_all_orders.begin(), sky_for_all_orders.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), l.begin());                        
-	  	// l.resize(it2-l.begin());   
-	  	// nsky_for_all_orders_global=l; 
-
-  	}
+	}
 }
+
 
 vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_cross){
 	cout << "dySky::compute_skyline" <<endl;
@@ -603,3 +584,23 @@ for (i=n; i>=1; i--){
 
 return K[n][W]; 
 } 
+
+void comb(int N, vector<vector<int>> &all_combination)
+{	
+	for (int K=1; K<N; K++){
+
+	    std::string bitmask(K, 1); // K leading 1's
+	    bitmask.resize(N, 0); // N-K trailing 0's
+
+	    // print integers and permute bitmask
+	    
+	    do {
+	    	vector <int> combin;
+	        for (int i = 0; i < N; ++i) // [0..N-1] integers
+	        {
+	            if (bitmask[i]) combin.push_back(i);
+	        }
+	        all_combination.push_back(combin);
+	    } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+	}
+}

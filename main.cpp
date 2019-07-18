@@ -87,10 +87,10 @@ int main(int argc, char** argv) {
     int storage;
     bool selectedMethod[]={
     	false, //dysky_m
-    	false, //dysky_v
+    	true, //dysky_v
     	true, //cps
     	false, //tos
-    	true, //arg
+    	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
