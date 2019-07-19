@@ -88,13 +88,13 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 	
 	//************************************
 	// memory
-	struct sysinfo sys_info;
-	uint64_t info_ram;
-	if (!(sysinfo(&sys_info) == -1)) {
-		info_ram=sys_info.totalram - sys_info.freeram;
-		info_ram = (info_ram * sys_info.mem_unit)/1024;
-		printf("memory %d\n", info_ram);
-	}
+	// struct sysinfo sys_info;
+	// uint64_t info_ram;
+	// if (!(sysinfo(&sys_info) == -1)) {
+	// 	info_ram=sys_info.totalram - sys_info.freeram;
+	// 	info_ram = (info_ram * sys_info.mem_unit)/1024;
+	// 	printf("memory %d\n", info_ram);
+	// }
 	
 	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
 		Query q;

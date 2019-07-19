@@ -15,11 +15,11 @@
 rm cout
 rm cerr 
 
-for dataset_size in 1000 2000 3000 4000 5000
+for dataset_size in 10000 20000 30000
 do
-	for statDim in 4 6 8
+	for statDim in 4
 	do
-		for dyDim in 2
+		for dyDim in 3 4
 		do
 			for value in 5 6
 			do
