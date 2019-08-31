@@ -48,8 +48,9 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	transitive_preference.compute_transitive_closure(p);
 	//////cout << "version transitive du graphe"<<endl;
 	//transitive_preference.print_edges();
-	// find incomparable pairs
+	
 
+	// find incomparable pairs, i.e. there is no path from a value to another
 	vector<pair<id,id>> incomparable_pairs;
 	//cout << "1 / Find incomparable pairs"<<endl;
 	// for all vertices i
@@ -68,8 +69,8 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				
 				incomparable_pairs.push_back(pair<id,id>(value1,value2));
 				incomparable_pairs.push_back(pair<id,id>(value2,value1));
-				////cout <<value1<<value2<<endl;
-				////cout <<value2<<value1<<endl;	
+				cout <<value1<<value2<<endl;
+				cout <<value2<<value1<<endl;	
 			}
 					
 		}
@@ -80,7 +81,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	Graph<int> consistency_graph;
 	consistency_graph.vertices=vector<int>(incomparable_pairs.size());
 	for (int i=0; i<incomparable_pairs.size(); i++){
-		////cout <<"== Processing pair: "<< incomparable_pairs[i].first << " " << incomparable_pairs[i].second<<endl;
+		cout <<"== Processing pair: "<< incomparable_pairs[i].first << " " << incomparable_pairs[i].second<<endl;
 		Graph<int> new_preference=p;
 		// add the missing order to the preference
 		new_preference.out_edges[incomparable_pairs[i].first].insert(incomparable_pairs[i].second);
@@ -95,7 +96,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				auto it_source=new_transitive_preference.out_edges.find(incomparable_pairs[j].first);
 				if (it_source!=new_transitive_preference.out_edges.end()){
 					if (it_source->second.find(incomparable_pairs[j].second)!=it_source->second.end()){
-						////cout << "++++++++ induced pair: "<<incomparable_pairs[j].first <<" "<<incomparable_pairs[j].second<<endl;
+						cout << "++++++++ induced pair: "<<incomparable_pairs[j].first <<" "<<incomparable_pairs[j].second<<endl;
 						consistency_graph.add_outedges(i,{j});
 					}
 				}
@@ -116,13 +117,15 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 		}
 	}
 	// print non induced pairs
-	////cout <<endl<<"Non induced pairs: "<<endl;
-	// for (auto it_vector=non_induced_pairs.begin();it_vector!=non_induced_pairs.end();it_vector++){
-	// 	cout << it_vector->first<<" "<< it_vector->second <<endl;
-	// }
+	cout <<endl<<"Non induced pairs: "<<endl;
+	int counter=0;
+	for (auto it_vector=non_induced_pairs.begin();it_vector!=non_induced_pairs.end();it_vector++){
+		cout << counter<<": "<< it_vector->first<<" "<< it_vector->second <<endl;
+		counter++;
+	}
 	
-	// compute incompatibility graph
-	//cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
+	// compute incompatibility graph, i.e. create a cycle 
+	cout <<endl<<"3 / Construct Incompatibility graph"<<endl;
 	Graph<int> incompatibility_graph;
 	incompatibility_graph.vertices=vector<int>(non_induced_pairs.size());
 	for (int i=0; i<non_induced_pairs.size(); i++){
@@ -149,16 +152,16 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	}	
 	// print incompatibility graph
 	// ////cout << "incompatibility graph"<<endl;
-	// incompatibility_graph.print_edges();
+	 incompatibility_graph.print_edges();
 
 	// color incompatibility graph
 	//cout <<endl<<"4 / Color Incompatibility graph"<<endl;
 	incompatibility_graph.greedyColoring();
 
-	//for(int i=0;i<incompatibility_graph.vertices.size();i++){
-		////cout << "pair: " <<non_induced_pairs[i].first<<" "<< non_induced_pairs[i].second<<" --> color: "
-			//<<incompatibility_graph.vertex_color[i]<<endl;
-	//}
+	for(int i=0;i<incompatibility_graph.vertices.size();i++){
+		cout << "pair: " <<non_induced_pairs[i].first<<" "<< non_induced_pairs[i].second<<" --> color: "
+			<<incompatibility_graph.vertex_color[i]<<endl;
+	}
 
 	//create chains
 	int number_colors=1;
@@ -167,28 +170,59 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 			number_colors=incompatibility_graph.vertex_color[i]+1;
 		}
 	}
-	//cout << "number colors: "<<number_colors<<endl;
+	cout << "number colors: "<<number_colors<<endl;
 
-	vector<Graph<int>> chains_computed;
-	for (int color=0;color<number_colors;color++){
-		//cout<< "chain for color: "<<color<<endl;
-		Graph<int> pre_chain;
-		pre_chain=p;
-		for (int j=0;j<incompatibility_graph.vertex_color.size();j++){
-			// add vertices with the same color
-			if (color==incompatibility_graph.vertex_color[j]){
-				pre_chain.add_outedges(non_induced_pairs[j].first,{non_induced_pairs[j].second});
-			}
+	if( cfg->dyDim_val>6){
+		cout << "new dev"<<endl;
+		vector<Graph<int>> chains_computed;
+		vector<pair<int,int>> remaining_non_induced_pairs=non_induced_pairs;
+		while (!remaining_non_induced_pairs.empty()){
+			Graph<int> pre_chain;
+			pre_chain=p;
+			vector<pair<int,int>> o;
+			for (auto pair=remaining_non_induced_pairs.begin(); pair!=remaining_non_induced_pairs.end(); pair++){
+				if(pre_chain.is_DAG(Order(pair->first, pair->second))){
+					pre_chain.add_outedge(pair->first, pair->second);
+					cout << "to_add " <<pair->first <<" "<< pair->second<<endl;
+				}	
+				else{
+					o.push_back(*pair);
+				}
+			}	
+			remaining_non_induced_pairs=o;
+			pre_chain.print_edges();
+			Graph<int> chain;
+			chain.compute_transitive_closure(pre_chain);
+			cout <<"apres transitivite"<<endl;
+			chain.print_edges();
+			chains_computed.push_back(chain);
 		}
-		//cout <<"avant transitivite"<<endl;
-		Graph<int> chain;
-		chain.compute_transitive_closure(pre_chain);
-		//cout <<"apres transitivite"<<endl;
-		//chain.print_edges();
-		chains_computed.push_back(chain);
+		cout << "end new dev"<<endl;
+		this->chains[i]=chains_computed;
+	}
+	else {
+		vector<Graph<int>> chains_computed;
+		for (int color=0;color<number_colors;color++){
+			cout<< "chain for color: "<<color<<endl;
+			Graph<int> pre_chain;
+			pre_chain=p;
+			for (int j=0;j<incompatibility_graph.vertex_color.size();j++){
+				// add vertices with the same color
+				if (color==incompatibility_graph.vertex_color[j]){
+					pre_chain.add_outedges(non_induced_pairs[j].first,{non_induced_pairs[j].second});
+				}
+			}
+			cout <<"avant transitivite"<<endl;
+			pre_chain.print_edges();
+			Graph<int> chain;
+			chain.compute_transitive_closure(pre_chain);
+			cout <<"apres transitivite"<<endl;
+			chain.print_edges();
+			chains_computed.push_back(chain);
+		}	
+		this->chains[i]=chains_computed;	
 	}
 
-	this->chains[i]=chains_computed;
 }
 
 

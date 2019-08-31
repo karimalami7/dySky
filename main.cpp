@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
     bool selectedMethod[]={
     	false, //dysky_m
     	true, //dysky_v
-    	true, //cps
-    	false, //tos
+    	false, //cps
+    	true, //tos
     	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////

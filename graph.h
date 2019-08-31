@@ -22,6 +22,7 @@ public:
 	void compute_transitive_closure(Graph<T> p);
 	void greedyColoring(); 
 	bool is_subgraph(Graph<T> p); 
+	bool is_DAG(Order new_edge);
 
 };
 
@@ -189,4 +190,25 @@ bool Graph<T>::is_subgraph(Graph<T> p)
 		}
 	}
 	return true;
+}
+
+template <typename T>
+bool Graph<T>::is_DAG(Order new_edge){
+
+	Graph<T> p_trans;
+	p_trans.compute_transitive_closure(*this);
+
+	// detect cycle
+	bool cycle_exists=false;
+
+	auto it_src=p_trans.out_edges.find(new_edge.second);
+	if (it_src!=p_trans.out_edges.end()){
+		auto it_dest=it_src->second.find(new_edge.first);
+		if(it_dest!=it_src->second.end()){
+			cycle_exists=true;
+		}
+	}
+
+	return !cycle_exists;
+
 }
