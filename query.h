@@ -72,8 +72,13 @@ void Query::graph_to_orderPairs(Config* cfg){
 
 void Query::recur_cross(Config* cfg, vector<Order> v, int niv){
 
-	for (int i=0; i<this->preference_orders[niv].size(); i++){
-		v.push_back(this->preference_orders[niv][i]);
+	for (int i=0; i<this->preference_orders[niv].size()+1; i++){
+		if (i<this->preference_orders[niv].size()) {
+			v.push_back(this->preference_orders[niv][i]);
+		}else{
+			v.push_back(Order(-1,-1));
+		}
+		
 		if (niv<cfg->dyDim_size-1){
 			recur_cross(cfg, v, niv+1);
 			}

@@ -86,10 +86,10 @@ int main(int argc, char** argv) {
     ofstream myFile(fileName);
     int storage;
     bool selectedMethod[]={
-    	false, //dysky_m
+    	true, //dysky_m
     	true, //dysky_v
-    	false, //cps
-    	true, //tos
+    	true, //cps
+    	false, //tos
     	false, //arg
     };
   	//////////////////////////////////////////////////////////////////////////////
@@ -105,6 +105,8 @@ int main(int argc, char** argv) {
 	dysky_m.generate_to_data(cfg);
 	// generate partial order data
 	dysky_m.generate_po_data(cfg);
+	//
+	//dysky_m.print_dataset(cfg);
 	//
 	cfg->to_dataset=dysky_m.to_dataset;
 	cfg->po_dataset=dysky_m.po_dataset;
@@ -128,7 +130,7 @@ int main(int argc, char** argv) {
 		start_time2=omp_get_wtime();
 		storage=0;
 		dysky_m.compute_views(cfg, all_orders, &storage);
-		dysky_m.views_selection(cfg);
+		//dysky_m.views_selection(cfg);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
