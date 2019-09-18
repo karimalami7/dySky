@@ -11,7 +11,7 @@ public:
 
 	vector<Preference> preference;
 	vector<vector<Order>> preference_orders;
-	vector<vector<Order>> preference_orders_cross;
+	vector<vector<Order>> preference_orders_cross; 
 	
 	void generate_preference(Config* cfg);
 	void graph_to_orderPairs(Config* cfg);
@@ -39,7 +39,10 @@ void Query::generate_preference(Config* cfg){
 	
 		int iteration=0;
 		int max_iteration=rand()%(2*cfg->dyDim_val);
-		//int max_iteration=1;
+		// if(max_iteration<cfg->dyDim_val-1){
+		// 	max_iteration=cfg->dyDim_val-1;
+		// }
+		//cout << "max iteration: "<< max_iteration<< endl;
 
 		this->preference[i].add_vertices(cfg->dyDim_val);
 
@@ -91,8 +94,18 @@ void Query::recur_cross(Config* cfg, vector<Order> v, int niv){
 
 void Query::cross_orders_over_dimensions(Config* cfg){
 	
-	vector<Order> v;
-	recur_cross(cfg, v, 0);
+	if (cfg->dyDim_size==1){
+		for (auto order : this->preference_orders[0]){
+			vector<Order> v;
+			v.push_back(order);
+			this->preference_orders_cross.push_back(v);
+		}
+	}
+	else{
+		vector<Order> v;
+		recur_cross(cfg, v, 0);		
+	}
+
 
 }
 

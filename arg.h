@@ -32,17 +32,17 @@ public:
 	vector<preference_tree*> sky_view;
 	vector<id> skyline_result;
 
-	void compute_views(Config *cfg, int *storage);
-	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node, int *storage);
-	void compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, int *storage);
+	void compute_views(Config *cfg, uint64_t *storage);
+	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node, uint64_t *storage);
+	void compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, uint64_t *storage);
 	void compute_skyline(Config *cfg, Query q);
 
 };
 
 // compute and store a set of views
-void Arg::compute_views(Config *cfg, int *storage){
+void Arg::compute_views(Config *cfg, uint64_t *storage){
 	
-	//cout << "Arg::compute_views"<<endl;
+	cout << "Arg::compute_views"<<endl;
 
 	if(cfg->dyDim_size==1){
 		compute_view_1d(cfg, this->sky_view, storage);
@@ -51,20 +51,21 @@ void Arg::compute_views(Config *cfg, int *storage){
 		vector<vector<Preference>> preference_stack(fact(cfg->dyDim_val));
 		this->sky_view=vector<preference_tree*>(fact(cfg->dyDim_val));
 		#pragma omp parallel for schedule(dynamic)
-		for (int number_view_stored=0; number_view_stored< fact(cfg->dyDim_val); number_view_stored++){
+		for (int id_view=0; id_view< fact(cfg->dyDim_val); id_view++){
+			cout << "id_view: "<< id_view<<endl;
 			Query q;
 			q.generate_preference(cfg);		
-			preference_stack[number_view_stored].push_back(q.preference[0]);
+			preference_stack[id_view].push_back(q.preference[0]);
 			preference_tree *pt =new preference_tree;
 			pt->p=q.preference[0];
-			this->sky_view[number_view_stored]=pt;
-	  		this->compute_view_recursively(cfg, 1, preference_stack[number_view_stored], this->sky_view[number_view_stored]->preference_child, storage);		
+			this->sky_view[id_view]=pt;
+	  		this->compute_view_recursively(cfg, 1, preference_stack[id_view], this->sky_view[id_view]->preference_child, storage);		
 		}
 	}
 
 }
 
-void Arg::compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, int *storage){
+void Arg::compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, uint64_t *storage){
 
 	#pragma omp parallel for schedule(dynamic)
 	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
@@ -76,15 +77,15 @@ void Arg::compute_view_1d(Config *cfg, vector<preference_tree*> &view_node, int 
 		cps_arg->compute_skyline(cfg, false);
 		preference_tree *pt =new preference_tree;
 		pt->p=q.preference[0];
-		pt->ids.swap(cps_arg->skyline_result);
-		view_node.push_back(pt);
 		*storage=*storage+cps_arg->skyline_result.size();
+		//pt->ids.swap(cps_arg->skyline_result);
+		view_node.push_back(pt);
 		delete cps_arg;
 	}
 }
 
-void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node, int *storage){
-	//cout << "Arg::compute_view_recursively niveau: "<< niveau<<endl; 
+void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, vector<preference_tree*> &view_node, uint64_t *storage){
+	// cout << "Arg::compute_view_recursively niveau: "<< niveau<<endl; 
 	
 	//************************************
 	// memory
@@ -96,7 +97,8 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 	// 	printf("memory %d\n", info_ram);
 	// }
 	
-	for (int number_views_stored=0; number_views_stored< fact(cfg->dyDim_val); number_views_stored++){
+	for (int id_view=0; id_view< fact(cfg->dyDim_val); id_view++){
+		// cout << "id_view: "<< id_view<<endl;
 		Query q;
 		q.generate_preference(cfg);
 		// q.preference[0].print_edges();
@@ -107,7 +109,7 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			preference_tree *pt =new preference_tree;
 			pt->p=q.preference[0];
 			view_node.push_back(pt);
-			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[number_views_stored]->preference_child, storage);
+			this->compute_view_recursively(cfg,  niveau+1, preference_stack, view_node[id_view]->preference_child, storage);
 		}
 		else{
 			preference_stack.push_back(q.preference[0]);
@@ -119,9 +121,9 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			cps_arg->compute_skyline(cfg, false);
 			preference_tree *pt =new preference_tree;
 			pt->p=q.preference[0];
-			pt->ids.swap(cps_arg->skyline_result);
-			view_node.push_back(pt);
 			*storage=*storage+cps_arg->skyline_result.size();
+			//pt->ids.swap(cps_arg->skyline_result);
+			view_node.push_back(pt);
 			delete cps_arg;
 		}
 		preference_stack.pop_back();

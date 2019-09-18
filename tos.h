@@ -25,9 +25,9 @@ public:
 	vector<vector<chain>> paths;
 
 	Tos(Config *cfg);
-	void compute_views(Config *cfg, int *storage);
-	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, int *storage);
-	void compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *storage);
+	void compute_views(Config *cfg, uint64_t *storage);
+	void compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, uint64_t *storage);
+	void compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, uint64_t *storage);
 	vector<id> compute_skyline(Config *cfg);
 	void define_paths(vector<Preference> p, Config *cfg);
 	void chain_graph_to_vec_representation(vector<vector<Graph<int>>> chains, Config *cfg);
@@ -38,7 +38,7 @@ Tos::Tos(Config *cfg){
 	this->paths=vector<vector<chain>>(cfg->dyDim_size);
 }
 
-void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *storage){
+void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, uint64_t *storage){
 	
 	chain tos_values(cfg->dyDim_val);
 	for (int i=0; i<cfg->dyDim_val; i++){tos_values[i]=i;}
@@ -65,13 +65,13 @@ void Tos::compute_view_1d(Config *cfg, map<chain, chain_tree*> &view_node, int *
 		{
 			view_node[all_permutation[i]]=new chain_tree;
 		}
-		view_node[all_permutation[i]]->ids=cps_tos->skyline_result;
-		*storage=*storage+cps_tos->skyline_result.size();
+		view_node[all_permutation[i]]->ids.swap(cps_tos->skyline_result);
+		*storage=*storage+view_node[all_permutation[i]]->ids.size();
 		delete cps_tos;
 	}
 }
 
-void Tos::compute_views(Config *cfg, int *storage){
+void Tos::compute_views(Config *cfg, uint64_t *storage){
 	//cout << "Tos::compute_views"<<endl;
   	
   	if(cfg->dyDim_size==1){
@@ -93,6 +93,17 @@ void Tos::compute_views(Config *cfg, int *storage){
 		
 		#pragma omp parallel for schedule(dynamic)
 		for (int j=0;j<all_permutation.size();j++) {
+			//************************************
+			// memory
+			struct sysinfo sys_info;
+			uint64_t info_ram;
+			if (!(sysinfo(&sys_info) == -1)) {
+				info_ram=sys_info.totalram - sys_info.freeram;
+				info_ram = (info_ram * sys_info.mem_unit)/1024;
+				printf("memory %d\n", info_ram);
+			}
+			//************************************
+
 	  	  	Preference p_to;
 			p_to.add_vertices(cfg->dyDim_val);
 			for (id source=0;source<cfg->dyDim_val-1;source++){
@@ -107,16 +118,12 @@ void Tos::compute_views(Config *cfg, int *storage){
 			}		
   			this->compute_view_recursively(cfg, 1, preference_stack[j], this->sky_view[all_permutation[j]]->chain_child, storage);
 
-  			//
-			// info_ram=sys_info.totalram - sys_info.freeram;
-			// info_ram = (info_ram * sys_info.mem_unit)/1024;
-			// printf("memory %d\n", info_ram);	
   		}
   	}
   	
 }
 
-void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, int *storage){
+void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> preference_stack, map<chain, chain_tree*> &view_node, uint64_t *storage){
 	//cout << "Tos::compute_view_recursively, niveau "<< niveau<<endl;
 
 	chain tos_values(cfg->dyDim_val);
@@ -158,9 +165,8 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 			cps_tos->encoding(cfg);
 			cps_tos->compute_skyline(cfg, false);
 			view_node[all_permutation[j]]=new chain_tree;
-		  	view_node[all_permutation[j]]->ids=cps_tos->skyline_result;
-		  	sort(view_node[all_permutation[j]]->ids.begin(),view_node[all_permutation[j]]->ids.end());
-		  	*storage=*storage+cps_tos->skyline_result.size();
+		  	view_node[all_permutation[j]]->ids.swap(cps_tos->skyline_result);
+		  	*storage=*storage+view_node[all_permutation[j]]->ids.size();
 			delete cps_tos;
 		}	
 		preference_stack.pop_back();

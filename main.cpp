@@ -84,11 +84,11 @@ int main(int argc, char** argv) {
 
     string const fileName("logs");
     ofstream myFile(fileName);
-    int storage;
+    uint64_t storage;
     bool selectedMethod[]={
     	true, //dysky_m
-    	true, //dysky_v
-    	true, //cps
+    	false, //dysky_v
+    	false, //cps
     	false, //tos
     	false, //arg
     };
@@ -227,10 +227,10 @@ int main(int argc, char** argv) {
 		workload[q].graph_to_orderPairs(cfg);
 		workload[q].cross_orders_over_dimensions(cfg);
 		//cout << "query preferences: "<<endl;
-		for (int i=0; i<cfg->dyDim_size; i++){
-			workload[q].preference[i].print_edges();
-			cout <<endl;
-		}	
+		// for (int i=0; i<cfg->dyDim_size; i++){
+		// 	workload[q].preference[i].print_edges();
+		// 	cout <<endl;
+		// }	
 
 		// skyline query answering by dySky using materialized views
 		if(selectedMethod[0]==true){
@@ -347,11 +347,11 @@ int main(int argc, char** argv) {
 		cerr<<endl;
 	}
 
-	if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]<< " : ";
-	if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]<< " : ";
-	if (selectedMethod[2]) monFlux1 << processing_time["cps"]<< " : ";
-	if (selectedMethod[3]) monFlux1 << processing_time["tos"]<< " : ";
-	if (selectedMethod[4]) monFlux1 << processing_time["arg"]<< " : ";
+	if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]/cfg->workload_size<< " : ";
+	if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]/cfg->workload_size<< " : ";
+	if (selectedMethod[2]) monFlux1 << processing_time["cps"]/cfg->workload_size<< " : ";
+	if (selectedMethod[3]) monFlux1 << processing_time["tos"]/cfg->workload_size<< " : ";
+	if (selectedMethod[4]) monFlux1 << processing_time["arg"]/cfg->workload_size<< " : ";
 
 	monFlux1 << endl;
 }

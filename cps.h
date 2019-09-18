@@ -172,7 +172,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 	}
 	// cout << "number colors: "<<number_colors<<endl;
 
-	if( cfg->dyDim_val>6){
+	if( cfg->dyDim_val>5){
 		// cout << "new dev"<<endl;
 		vector<Graph<int>> chains_computed;
 		vector<pair<int,int>> remaining_non_induced_pairs=non_induced_pairs;
@@ -297,9 +297,7 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 		for (int i=0; i< this->to_dataset.size(); i++){
 
 			Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
-			for (int j=0;j<=cfg->statDim_size;j++){
-				p[j]=this->to_dataset[i][j];
-			}
+			memcpy(p, this->to_dataset[i], (cfg->statDim_size+1) * sizeof(int));
 			int index_dim_virt=cfg->statDim_size+1;
 			for (int j=0; j<this->chains.size(); j++){
 				for (int k=0;k<this->chains[j].size();k++){
@@ -314,9 +312,7 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 		temp_dataset=vector<Point>(cfg->to_dataset.size());
 		for (int i=0; i< cfg->to_dataset.size(); i++){
 			Point p=(int*)malloc((cfg->statDim_size+card_virtual_dimensions+1)*sizeof(int));
-			for (int j=0;j<=cfg->statDim_size;j++){
-				p[j]=cfg->to_dataset[i][j];
-			}
+			memcpy(p, cfg->to_dataset[i], (cfg->statDim_size+1) * sizeof(int));
 			int index_dim_virt=cfg->statDim_size+1;
 			for (int j=0; j<this->chains.size(); j++){
 				for (int k=0;k<this->chains[j].size();k++){
@@ -330,6 +326,13 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 
 
    	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+
+	//**************************
+	//destroy Point pointers
+	for ( auto p : temp_dataset)
+		delete p;
+	//**************************	
+
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
 
  // 	cout << "print ids of skyline result" <<endl; 
