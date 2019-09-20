@@ -445,12 +445,20 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage){
 		i++;
 	}
 
+	int total_required_memory=0;
+	int total_gain=0;
+
 	cout << "spos, their weight and gain"<<endl; 
 	for (int i=0; i<gain.size();i++){
 		cout << "spo " <<i <<" : "<<wt[i] << "  " << val[i] <<endl;
+		total_required_memory+=wt[i];
+		total_gain+=val[i];
 	}
 
-	cout << "maximal weight: "<< max_storage<<endl;
+	cout << "Memory required to store all spos: "<< total_required_memory<<endl;
+	cout << "Maximum Gain: "<< total_gain<<endl;
+
+	
 	vector<int> selected_spos_id;
 	knapSack(max_storage, wt, val, gain.size(), selected_spos_id) ;
 
@@ -471,11 +479,8 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage){
 		}
 
 		this->selected_spos.insert(pair<vector<Order>, vector<id>>(it->first,ot->ids));
+		delete ot;
 	}
-
-	// cout <<"number of spos kept: "<< sky_view_swap.size()<<endl;
-
-	// this->sky_view.swap(sky_view_swap);
 }
 
 
@@ -485,48 +490,64 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage){
 
 // Returns the maximum value that can be put in a knapsack of capacity W 
 int dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids) 
-{ 
+{ 	
+	cout << "****************************"<<endl;
+	cout << "knapsack Algo starts "<<endl;
+	cout << "Available memory resources: "<< W<<endl;
+
 int i, w; 
 //int K[n+1][W+1]; 
 //bool keep[n+1][W+1];
 
-vector<int*> K= vector<int*>(n+1);
-for(int i=0; i<n+1; i++) K[i]=new int[W+1];
-vector<bool*> keep= vector<bool*>(n+1);
-for(int i=0; i<n+1; i++) keep[i]=new bool[W+1];
+int* K= new int[W+1];
+int* K_temp= new int[W+1];
+for (i=0; i< W+1; i++) K_temp[i]=0;
+//for(int i=0; i<n+1; i++) K[i]=new int[W+1];
+// vector<bool*> keep= vector<bool*>(n+1);
+// for(int i=0; i<n+1; i++) keep[i]=new bool[W+1];
 
-for (i = 0; i <= n; i++) for (w = 0; w <= W; w++) keep[i][w]=0;
-
+// for (i = 0; i <= n; i++) for (w = 0; w <= W; w++) keep[i][w]=0;
+vector<set<int>> keep(n+1);
 // Build table K[][] in bottom up manner 
 for (i = 0; i <= n; i++) 
 { 
 	for (w = 0; w <= W; w++) 
 	{ 
-		if (i==0 || w==0) 
-			K[i][w] = 0; 
-		else if (wt[i-1] <= w && val[i-1] + K[i-1][w-wt[i-1]] > K[i-1][w]){ 
-			K[i][w] = val[i-1] + K[i-1][w-wt[i-1]];
-			keep[i][w]=1; 
+		if (w==0) 
+			K[w] = 0; 
+		else if (wt[i-1] <= w && val[i-1] + K_temp[w-wt[i-1]] > K_temp[w]){ 
+			K[w] = val[i-1] + K_temp[w-wt[i-1]];
+			keep[i].insert(w); 
 		}	
 		else{
-			K[i][w] = K[i-1][w];
-			keep[i][w]=0;
+			K[w] = K_temp[w];
+			//keep[i][w]=0;
 		}
 	} 
+	for (int j=0; j< W+1; j++) K_temp[j]=K[j];
 } 
+
+//for (auto k : K) delete k;
 
 cout << "Selected spo: "<<endl;
 
+int total_gain=0;
+int total_poids=0;
+
 int X=W;
 for (i=n; i>=1; i--){
-	if (keep[i][X]==1){
+	if (keep[i].find(X)!=keep[i].end()){
 		cout << "spo: " << i-1 << ",gain: "<< val[i-1]<< ",weight: "<< wt[i-1]<<endl;
 		spo_ids.push_back(i-1);
+		total_poids+=wt[i-1];
+		total_gain+=val[i-1];
 		X=X-wt[i-1];
 	}
 }
 
-return K[n][W]; 
+cout <<"Gain total: "<<total_gain<<", Poids total: " <<total_poids<<endl;
+
+return K[W]; 
 } 
 
 void dySky_h::comb(int N, vector<vector<int>> &all_combination)
