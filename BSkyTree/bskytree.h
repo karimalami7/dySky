@@ -1,7 +1,7 @@
 #ifndef BSKYTREE_H_INCLUDED
 #define BSKYTREE_H_INCLUDED
 
-#include "../common.h"
+#include "../common/common.h"
 
 
 #define BITSIZE			20

@@ -10,10 +10,10 @@
  *		+ Compute skyline by BSkyTree
  */
 
-#include "common.h"
-#include "config.h"
-#include "generator/generateur.h"
-#include "BSkyTree/bskytree.h"
+#include "../common/common.h"
+#include "../common/config.h"
+#include "../generator/generateur.h"
+#include "../BSkyTree/bskytree.h"
 using namespace std;
 
 struct preference_tree{

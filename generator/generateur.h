@@ -2,7 +2,7 @@
 #define GENERATEUR_H_INCLUDED
 
 #include "DataGenerator.h"
-#include "../common.h"
+#include "../common/common.h"
 
 void normaliseDonnees(vector<Point> &donnees, Space d, vector<Point> &sortie);
 

@@ -5,15 +5,16 @@
  *      Author: karim
  */
 
-#include "config.h"
-#include "common.h"
-#include "graph.h"
-#include "preference.h"
-#include "query.h"
-#include "cps.h"
-#include "dySky.h"
-#include "arg.h"
-#include "tos.h"
+#include "common/config.h"
+#include "common/common.h"
+#include "common/graph.h"
+#include "common/preference.h"
+#include "common/query.h"
+#include "cps/cps.h"
+#include "dySky/dySky.h"
+#include "dySky/dySky_h.h"
+#include "arg/arg.h"
+#include "tos/tos.h"
 #include <omp.h>
 
 using namespace std;
@@ -173,7 +174,7 @@ int main(int argc, char** argv) {
 
 	//**********************************************
 	// dysky_h
-	dySky dysky_h(cfg);
+	dySky_h dysky_h(cfg);
 	if (selectedMethod[5]==true){
 		cerr << "=====dysky_h=====" <<endl;	
 		cout << "=====dysky_h=====" <<endl;	
@@ -188,7 +189,7 @@ int main(int argc, char** argv) {
 		start_time2=omp_get_wtime();
 		storage=0;
 		dysky_h.compute_views(cfg, all_orders, &storage);
-		dysky_h.views_selection(cfg, storage/10);
+		dysky_h.views_selection(cfg, storage);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;

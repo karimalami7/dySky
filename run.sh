@@ -12,18 +12,18 @@
 #	Example:
 #	./dySky -n 100000 -s 8 -k 100 -d 2 -m 10 -q 2 \n\n
 
-rm cout
-rm cerr 
+# rm cout
+# rm cerr 
 
-for dataset_size in 10000 20000 30000
+for dataset_size in 10000
 do
-	for statDim in 4
+	for statDim in 6
 	do
-		for dyDim in 3 4
+		for dyDim in 1
 		do
-			for value in 5 6
+			for value in 6
 			do
-				./dySky -n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q $[2**$value] > cout 2> cerr
+				./exec_dySky -n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 5  2> cerr 
 				mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value
 				mv cerr ./logs/cerr-$dataset_size-$statDim-$dyDim-$value
 			done
