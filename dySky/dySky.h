@@ -22,7 +22,6 @@ class dySky {
 	vector<Point> to_dataset;
 	vector<vector<int>> po_dataset;
 	vector<map<int, vector<int>>> partition_ids;
-	//vector<id> always_sky;
 	vector<id> never_sky;
 	vector<id> candidates;
 	unordered_map<Order, order_tree*, pairhash> sky_view;
@@ -34,7 +33,6 @@ class dySky {
 	void print_dataset (Config* cfg);
 	void print_dataset (vector<Point> data, string name, int d);
 	dySky(Config *cfg);
-	void views_selection(Config* cfg, uint64_t max_storage);
 	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage);
 	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
 	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
@@ -114,10 +112,7 @@ int dySky::compute_candidates(Config* cfg){
     }
     sort (this->candidates.begin(),this->candidates.end());   
     cout << "Candidate set size: "<<this->candidates.size()<<endl;
-	// cout << "print ids" <<endl; 
-	// for (auto tuple : this->candidates){
-	// 	cout << tuple << endl;
-	// }
+
     vector<id> all_ids=vector<id>(cfg->dataset_size);
     for (int i=0; i<cfg->dataset_size;i++){
     	all_ids[i]=i;
@@ -128,25 +123,7 @@ int dySky::compute_candidates(Config* cfg){
   	this->never_sky.resize(it4-this->never_sky.begin());
   	cout << "never_sky set size: "<<this->never_sky.size()<<endl;
 
-	//cout << "print ids of never_sky" <<endl; 
-	//for (auto tuple : this->never_sky){
-	//	cout << tuple << endl;
-	//}
-
- 	// string const nomFichier1("candidates.csv");
-  //   ofstream monFlux1(nomFichier1.c_str());
-
-  //   for (int i = 0; i < this->candidates.size() ; i++)
-  //   {
-  //       for (int j = 0; j <= cfg->statDim_size ; j++){
-  //           monFlux1 << this->to_dataset[this->candidates[i]][j]<<";";  
-  //       } 
-  //       monFlux1 << this->po_dataset[this->candidates[i]][0]<< endl;
-  //   }
-
 }
-
-
 
 
 void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
@@ -228,19 +205,8 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 	if (cfg->dyDim_size==1){
 		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders, storage);
 	}
-	else{ // case of multi-dimensions
+	else{ // case of multiple dimensions
 
-		//*******************************************
-		// compute all partitions for all dimensions, l * m vector
-
-		// this->partition_ids=vector<map<int, vector<int>>>(cfg->dyDim_size);
-		// for (int i=0; i<this->candidates.size(); i++){
-		// 	for (int j=0; j<cfg->dyDim_size; j++){
-		// 		partition_ids[j][this->po_dataset[this->candidates[i]][j]].push_back(this->candidates[i]);
-		// 	}	
-		// }
-
-		preference_orders[0].push_back(Order(-1,-1));
 		for(int s=0;s<preference_orders[0].size();s++){
 			this->sky_view[Order(preference_orders[0][s].first,preference_orders[0][s].second)]=new order_tree;
 		}
@@ -251,10 +217,11 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 			int worst_value=preference_orders[0][s].second;
 			//cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
 			
-			if (best_value!=-1){
+			vector<Point> branch_dataset;
+
+			if (best_value!=worst_value){
 				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 				// partitionner les donnees par rapport à cette dimension
-				vector<Point> branch_dataset;
 				for (int i=0; i<candidates_tuples.size(); i++){
 					if (candidates_tuples[i][cfg->statDim_size+1]==best_value){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
@@ -267,50 +234,24 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 						p[1+cfg->statDim_size+niveau]=1;
 						branch_dataset.push_back(p);
 					}
-				}	
-				compute_view_recursively_md(cfg, niveau+1, branch_dataset, this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
-				
-				/////
-				//destroy Point pointers
-				for ( auto p : branch_dataset)
-				delete p;				
-			}
+				}
+			}	
 			else{
-				//here, we parition by values in dimension 0 and we call the recursive function Order (-1,-1)
-		 		
-				//cout <<"niveau: "<<niveau<< " --> "<< "-1"<<" : "<<"-1"<<endl;
-				//auto start_time=omp_get_wtime();
-				map<int,vector<Point>> partitions;
 				for (auto tuple : candidates_tuples){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					partitions[p[1+cfg->statDim_size+niveau]].push_back(p);
+					if(tuple[1+cfg->statDim_size+niveau]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						branch_dataset.push_back(p);
+					}
 				}
-
-				this->sky_view[Order(-1,-1)]=new order_tree;
-
-				
-				for (auto partition : partitions){
-					// cout << "partition size: "<< partition.second.size()<<endl;
-			  // 	 	cout << "print ids of the partition: " <<endl; 
-					// for (auto tuple : partition.second){
-					// 	cout << tuple[0] << endl;
-					// }
-					compute_view_recursively_md(cfg, niveau+1, partition.second, this->sky_view[Order(-1,-1)]->order_child, preference_orders, storage);
-				}
-
-				/////
-				//destroy Point pointers
-				for ( auto partition : partitions)
-				for ( auto p : partition.second)
-				delete p;
-				//	
-				//cout <<"time for (-1,-1): "<<omp_get_wtime()-start_time<<endl;
-				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-				// add other nsky
-				// vector<id> nsky_for_all_orders_global;
-				// compute_other_nsky(cfg, nsky_for_all_orders_global, this->candidates, orders_stack[0]);
 			}
+			compute_view_recursively_md(cfg, niveau+1, branch_dataset, this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
+			
+			/////
+			//destroy Point pointers
+			for ( auto p : branch_dataset)
+			delete p;				
+			
 		}
 	}
 }
@@ -321,54 +262,83 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;
-		//cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
+		// cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
+
 
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		//si c'est pas la dernière dimension 				
+		//if we are not processing last dimension			
 		if (niveau<cfg->dyDim_size -1){
 			vector<Point> branch_dataset;
 			
-			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			// partitionner les donnees par rapport à cette dimension
-			for (int i=0; i<dataset.size(); i++){
-				if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					p[cfg->statDim_size+1+niveau]=0;
-					branch_dataset.push_back(p);
-				}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					p[cfg->statDim_size+1+niveau]=1;
-					branch_dataset.push_back(p);
+			if (best_value!=worst_value){
+				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+				// partition data wrt worst and best value in dimension niveau
+				for (int i=0; i<dataset.size(); i++){
+					if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1+niveau]=0;
+						branch_dataset.push_back(p);
+					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1+niveau]=1;
+						branch_dataset.push_back(p);
+					}
+				}
+			}else{
+				for (auto tuple : dataset){
+					if(tuple[1+cfg->statDim_size+niveau]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						branch_dataset.push_back(p);
+					}
 				}
 			}
+
 			if (sky_view.find(Order(best_value,worst_value))==sky_view.end()){
 				sky_view[Order(best_value,worst_value)]=new order_tree;;
 			}
 			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
+			/////
+			//destroy Point pointers
+			for ( auto p : branch_dataset)
+			delete p;
 		}
 
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		//si c'est la dernière dimension
+		//if we are processing last dimension
 		if (niveau==cfg->dyDim_size-1){
 
 			vector<Point> branch_dataset;
-			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			// partitionner les donnees par rapport à cette dimension
-			for (int i=0; i<dataset.size(); i++){
-				if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					p[cfg->statDim_size+1+niveau]=0;
-					branch_dataset.push_back(p);
-				}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					p[cfg->statDim_size+1+niveau]=1;
-					branch_dataset.push_back(p);
+
+			if (best_value!=worst_value){
+
+				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+				// partitionner les donnees par rapport à cette dimension
+				for (int i=0; i<dataset.size(); i++){
+					if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1+niveau]=0;
+						branch_dataset.push_back(p);
+					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1+niveau]=1;
+						branch_dataset.push_back(p);
+					}
+				}
+			}else{
+				for (auto tuple : dataset){
+					if(tuple[1+cfg->statDim_size+niveau]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						branch_dataset.push_back(p);
+					}
 				}
 			}
+
 			//*************************************
 			// calculer le skyline
 			vector<id> sky;
@@ -399,133 +369,13 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 			delete p;
 			//	
 
-			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			// add other nsky
-			// vector<id> nsky_for_all_orders_global;
-			// compute_other_nsky(cfg, nsky_for_all_orders_global, this->candidates, orders_stack);
-			
-			//UNION 
-			// std::vector<id> h(nsky_for_all_orders_global.size()+notSky.size());   
-		 //  	std::vector<id>::iterator it3;
-		 //  	it3=std::set_union(notSky.begin(), notSky.end(), nsky_for_all_orders_global.begin(), nsky_for_all_orders_global.end(), h.begin());                        
-		 //  	h.resize(it3-h.begin());   
-		 //  	notSky=h; 
-
-		  	if (sky_view.find(Order(best_value,worst_value))==sky_view.end()){
-		  		//cout << "order not found" <<endl;
-		  		sky_view[Order(best_value,worst_value)]=new order_tree;
-		  		sky_view[Order(best_value,worst_value)]->ids=notSky;
-		  	}
-		  	else{
-		  		// cout << "order found" <<endl;
-		  		sky_view[Order(best_value,worst_value)]->ids.insert(sky_view[Order(best_value,worst_value)]->ids.end(),notSky.begin(),notSky.end());
-		  		sort(sky_view[Order(best_value,worst_value)]->ids.begin(),sky_view[Order(best_value,worst_value)]->ids.end());
-		  	}
-
-	  // 	 	cout << "print ids of notSky: " <<endl; 
-			// for (auto tuple : sky_view[Order(best_value,worst_value)]->ids){
-			// 	cout << tuple << endl;
-			// }
+	  		sky_view[Order(best_value,worst_value)]=new order_tree;
+	  		sky_view[Order(best_value,worst_value)]->ids.swap(notSky);
 		  	
-		  	*storage=*storage+notSky.size();
+		  	*storage=*storage+sky_view[Order(best_value,worst_value)]->ids.size();
 		}
+		
 	}	
-
-	//here, we parition by values in dimension 0 and we call the recursive function Order (-1,-1)
-
-	// cout <<"niveau: "<<niveau<< " --> "<< "-1"<<" : "<<"-1"<<endl;
-
-	if (niveau<cfg->dyDim_size -1){ // if not last dimension
-		map<int,vector<Point>> partitions;
-		for (auto tuple : dataset){
-			Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-			memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-			partitions[p[1+cfg->statDim_size+niveau]].push_back(p);
-		}
-
-
-		
-
-		for (auto partition : partitions){
-
-			// cout << "partition size: "<< partition.second.size()<<endl;
-	  // 	 	cout << "print ids of the partition: " <<endl; 
-			// for (auto tuple : partition.second){
-			// 	cout << tuple[0] << endl;
-			// }
-			if (sky_view.find(Order(-1,-1))==sky_view.end()){
-				sky_view[Order(-1,-1)]=new order_tree;
-				compute_view_recursively_md(cfg, niveau+1, partition.second, sky_view[Order(-1,-1)]->order_child, preference_orders, storage);
-			}
-			else
-			{
-				compute_view_recursively_md(cfg, niveau+1, partition.second, sky_view[Order(-1,-1)]->order_child, preference_orders, storage);
-			}
-		}
-	}
-
-	if (niveau==cfg->dyDim_size-1){ // if last dimension
-		map<int,vector<Point>> partitions;
-		for (auto tuple : dataset){
-			Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-			memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-			partitions[p[1+cfg->statDim_size+niveau]].push_back(p);
-		}
-		vector<id> notSky;
-		for (auto partition : partitions){ // compute skyline for each partition
-
-			//*************************************
-			// calculer le skyline
-			vector<id> sky_partition;
-			if(partition.second.size()>0){
-				int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
-				vector<Space> full_Space;
-				listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-				sky_partition=subspaceSkylineSize_TREE(full_Space, partition.second);				
-			}
-
-			sort(sky_partition.begin(),sky_partition.end());
-
-			//MINUS : get non skyline points in branch_dataset
-			vector<id> partition_ids(partition.second.size());
-			for (int b=0;b<partition.second.size();b++){
-				partition_ids[b]=partition.second[b][0];
-			}
-			sort(partition_ids.begin(),partition_ids.end());
-
-			std::vector<id> notSky_partition(partition_ids.size());   
-		  	std::vector<id>::iterator it4;
-		  	it4=std::set_difference(partition_ids.begin(), partition_ids.end(), sky_partition.begin(), sky_partition.end(), notSky_partition.begin());                        
-		  	notSky_partition.resize(it4-notSky_partition.begin());
-
-
-			notSky.insert(notSky.end(), notSky_partition.begin(), notSky_partition.end());	
-		}
-
-		sort(notSky.begin(),notSky.end());
-		
-		if (sky_view.find(Order(-1,-1))==sky_view.end()){
-			sky_view[Order(-1,-1)]=new order_tree;
-			sky_view[Order(-1,-1)]->ids=notSky;			
-		}
-		else{
-	  		sky_view[Order(-1,-1)]->ids.insert(sky_view[Order(-1,-1)]->ids.end(),notSky.begin(),notSky.end());
-	  		sort(sky_view[Order(-1,-1)]->ids.begin(),sky_view[Order(-1,-1)]->ids.end());				
-		}
-			/////
-			//destroy Point pointers
-		for (auto partition : partitions)
-		for ( auto p : partition.second)
-		delete p;
-			//	
-  	 	
-  	 	// cout << "print ids of notSky: " <<endl; 
-		// for (auto tuple : notSky){
-		// 	cout << tuple << endl;
-		// }
-		
-		*storage=*storage+notSky.size();
-	}
 
 }
 
@@ -533,7 +383,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 
 vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_cross){
 	cout << "dySky::compute_skyline" <<endl;
-
+	// cerr << "dySky::compute_skyline" <<endl;
 	// for (int i=0;i<preference_cross.size();i++){
 	// 	for (int j=0;j<preference_cross[i].size();j++){
 	// 		cout << preference_cross[i][j].first<< ":"<< preference_cross[i][j].second <<endl;
@@ -547,11 +397,11 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 
 	for (int i=0;i<preference_cross.size();i++){ // loop on orders
 		order_tree *ot=sky_view[preference_cross[i][0]];
-		//cout << preference_cross[i][0].first<< ":"<< preference_cross[i][0].second <<endl;
+		//cout << "niv: 0 " <<preference_cross[i][0].first<< ":"<< preference_cross[i][0].second <<endl;
 		int j=1;
 		while (j<cfg->dyDim_size){ // enter here when multi po dimension
 			ot=ot->order_child[preference_cross[i][j]];
-			//cout << preference_cross[i][j].first<< ":"<< preference_cross[i][j].second <<endl;
+			//cout << "niv:"<<j <<" "<< preference_cross[i][j].first<< ":"<< preference_cross[i][j].second <<endl;
 			j++;
 		}
 		

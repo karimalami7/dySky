@@ -39,10 +39,6 @@ void Query::generate_preference(Config* cfg){
 	
 		int iteration=0;
 		int max_iteration=rand()%(2*cfg->dyDim_val);
-		// if(max_iteration<cfg->dyDim_val-1){
-		// 	max_iteration=cfg->dyDim_val-1;
-		// }
-		//cout << "max iteration: "<< max_iteration<< endl;
 
 		this->preference[i].add_vertices(cfg->dyDim_val);
 
@@ -65,21 +61,34 @@ void Query::graph_to_orderPairs(Config* cfg){
 
 	this->preference_orders=vector<vector<Order>>(cfg->dyDim_size);
 	for (int i=0; i<cfg->dyDim_size; i++){
+		set<int> ordered_values;
 		for (auto it=this->preference[i].out_edges.begin(); it!=this->preference[i].out_edges.end();it++){
+			ordered_values.insert(it->first);
 			for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
 				this->preference_orders[i].push_back(Order((it->first),(*it2)));
+				ordered_values.insert(*it2);
 			}
-		}		
+		}
+		vector<int>	all_values(cfg->dyDim_val);
+		for (int i=0;i<cfg->dyDim_val;i++) all_values[i]=i;
+
+		vector<int> non_ordered_values(all_values.size());   
+	  	vector<int>::iterator it;
+	  	it=std::set_difference(all_values.begin(), all_values.end(), ordered_values.begin(), ordered_values.end(), non_ordered_values.begin());                        
+	  	non_ordered_values.resize(it-non_ordered_values.begin());	
+
+		for (int value : non_ordered_values){ 
+			this->preference_orders[i].push_back(Order(value,value));
+		}	
+		
 	}
 }
 
 void Query::recur_cross(Config* cfg, vector<Order> v, int niv){
 
-	for (int i=0; i<this->preference_orders[niv].size()+1; i++){
+	for (int i=0; i<this->preference_orders[niv].size(); i++){
 		if (i<this->preference_orders[niv].size()) {
 			v.push_back(this->preference_orders[niv][i]);
-		}else{
-			v.push_back(Order(-1,-1));
 		}
 		
 		if (niv<cfg->dyDim_size-1){

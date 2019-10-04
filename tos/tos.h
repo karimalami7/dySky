@@ -175,8 +175,6 @@ void Tos::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 
 void Tos::define_paths(vector<Preference> p, Config *cfg){
 
-	
-	//p[1].print_edges();
 
 	for (int i=0; i<p.size();i++){
 		vector<Order> all_orders;

@@ -25,9 +25,9 @@ void generate_all_orders(Config *cfg, vector<vector<Order>> &all_orders){
     for (int i=0; i<cfg->dyDim_size; i++){
         for (int best_value=0; best_value<cfg->dyDim_val;best_value++){
             for (int worst_value = 0; worst_value <cfg->dyDim_val; ++worst_value){
-                if(best_value!=worst_value){
+                // if(best_value!=worst_value){
                     all_orders[i].push_back(Order(best_value,worst_value));
-                }
+                // }
             }
         }
     }

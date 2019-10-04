@@ -21,7 +21,7 @@ class dySky_h: public dySky {
 
 	dySky_h(Config *cfg);
 	
-	void views_selection(Config* cfg, uint64_t max_storage);
+	void views_selection(Config* cfg, uint64_t max_storage, vector<Query> &workload);
 
 	vector<id> hybrid_compute_skyline(Config* cfg, vector<vector<Order>> preference_cross);
 	void hybrid_compute_view_1d(Config* cfg, vector<Point> &dataset, Order o, bool* cSkyline);
@@ -43,13 +43,12 @@ void dySky_h::hybrid_compute_view_recursively_md(Config* cfg, int niveau, vector
 	int worst_value=spo[niveau].second;
 	//cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
 
-	if(best_value!=-1){
 
-		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		//si c'est pas la dernière dimension 				
-		if (niveau<cfg->dyDim_size -1){
-			vector<Point> branch_dataset;
-			
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//si c'est pas la dernière dimension 				
+	if (niveau<cfg->dyDim_size -1){
+		vector<Point> branch_dataset;
+		if(best_value!=worst_value){
 			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// partitionner les donnees par rapport à cette dimension
 			for (int i=0; i<dataset.size(); i++){
@@ -65,15 +64,27 @@ void dySky_h::hybrid_compute_view_recursively_md(Config* cfg, int niveau, vector
 					branch_dataset.push_back(p);
 				}
 			}
+		}
+		else{
+			for (auto tuple : dataset){
+				if(tuple[1+cfg->statDim_size+niveau]==best_value){
+					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+					memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+					branch_dataset.push_back(p);
+				}
+			}
 
-			this->hybrid_compute_view_recursively_md(cfg, niveau+1, branch_dataset, spo, cSkyline);
 		}
 
-		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		//si c'est la dernière dimension
-		if (niveau==cfg->dyDim_size-1){
+		this->hybrid_compute_view_recursively_md(cfg, niveau+1, branch_dataset, spo, cSkyline);
+	}
 
-			vector<Point> branch_dataset;
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//si c'est la dernière dimension
+	if (niveau==cfg->dyDim_size-1){
+
+		vector<Point> branch_dataset;
+		if(best_value!=worst_value){
 			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			// partitionner les donnees par rapport à cette dimension
 			for (int i=0; i<dataset.size(); i++){
@@ -89,112 +100,52 @@ void dySky_h::hybrid_compute_view_recursively_md(Config* cfg, int niveau, vector
 					branch_dataset.push_back(p);
 				}
 			}
-			//*************************************
-			// calculer le skyline
-			vector<id> sky;
-			if(branch_dataset.size()>0){
-				int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
-				vector<Space> full_Space;
-				listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-				sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
-			}
-
-			sort(sky.begin(),sky.end());
-			
-			//MINUS : get non skyline points in branch_dataset
-			vector<id> branch_dataset_ids(branch_dataset.size());
-			for (int b=0;b<branch_dataset.size();b++){
-				branch_dataset_ids[b]=branch_dataset[b][0];
-			}
-			sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
-
-			std::vector<id> notSky(branch_dataset_ids.size());   
-		  	std::vector<id>::iterator it4;
-		  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
-		  	notSky.resize(it4-notSky.begin());
-
-			/////
-			//destroy Point pointers
-			for ( auto p : branch_dataset)
-			delete p;
-			//	
-
-		  	//*********************************
-		  	// fill cSkyline
-
-		  	for (int id_tuple : notSky) cSkyline[id_tuple]=false;	
-
-		  	
-		}	
-	}
-	else{
-		//here, we parition by values in dimension 0 and we call the recursive function Order (-1,-1)
-
-		// cout <<"niveau: "<<niveau<< " --> "<< "-1"<<" : "<<"-1"<<endl;
-
-		if (niveau<cfg->dyDim_size -1){ // if not last dimension
-			map<int,vector<Point>> partitions;
+		}
+		else{
 			for (auto tuple : dataset){
-				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-				memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-				partitions[p[1+cfg->statDim_size+niveau]].push_back(p);
-			}
-
-			for (auto partition : partitions){
-
-				hybrid_compute_view_recursively_md(cfg, niveau+1, partition.second, spo, cSkyline);
+				if(tuple[1+cfg->statDim_size+niveau]==best_value){
+					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+					memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+					branch_dataset.push_back(p);
+				}
 			}
 		}
-
-		if (niveau==cfg->dyDim_size-1){ // if last dimension
-			map<int,vector<Point>> partitions;
-			for (auto tuple : dataset){
-				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-				memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-				partitions[p[1+cfg->statDim_size+niveau]].push_back(p);
-			}
-			vector<id> notSky;
-			for (auto partition : partitions){ // compute skyline for each partition
-
-				//*************************************
-				// calculer le skyline
-				vector<id> sky_partition;
-				if(partition.second.size()>0){
-					int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
-					vector<Space> full_Space;
-					listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-					sky_partition=subspaceSkylineSize_TREE(full_Space, partition.second);				
-				}
-
-				sort(sky_partition.begin(),sky_partition.end());
-
-				//MINUS : get non skyline points in branch_dataset
-				vector<id> partition_ids(partition.second.size());
-				for (int b=0;b<partition.second.size();b++){
-					partition_ids[b]=partition.second[b][0];
-				}
-				sort(partition_ids.begin(),partition_ids.end());
-
-				std::vector<id> notSky_partition(partition_ids.size());   
-			  	std::vector<id>::iterator it4;
-			  	it4=std::set_difference(partition_ids.begin(), partition_ids.end(), sky_partition.begin(), sky_partition.end(), notSky_partition.begin());                        
-			  	notSky_partition.resize(it4-notSky_partition.begin());
-
-
-				notSky.insert(notSky.end(), notSky_partition.begin(), notSky_partition.end());	
-			}
-
-			for (int id_tuple : notSky) cSkyline[id_tuple]=false;
-
-			/////
-			//destroy Point pointers
-			for (auto partition : partitions)
-			for ( auto p : partition.second)
-			delete p;
-				//	
-			
+		//*************************************
+		// calculer le skyline
+		vector<id> sky;
+		if(branch_dataset.size()>0){
+			int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
+			vector<Space> full_Space;
+			listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
+			sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
 		}
-	}
+
+		sort(sky.begin(),sky.end());
+		
+		//MINUS : get non skyline points in branch_dataset
+		vector<id> branch_dataset_ids(branch_dataset.size());
+		for (int b=0;b<branch_dataset.size();b++){
+			branch_dataset_ids[b]=branch_dataset[b][0];
+		}
+		sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
+
+		std::vector<id> notSky(branch_dataset_ids.size());   
+	  	std::vector<id>::iterator it4;
+	  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
+	  	notSky.resize(it4-notSky.begin());
+
+		/////
+		//destroy Point pointers
+		for ( auto p : branch_dataset)
+		delete p;
+		//	
+
+	  	//*********************************
+	  	// fill cSkyline
+
+	  	for (int id_tuple : notSky) cSkyline[id_tuple]=false;	
+
+	}	
 	
 }
 
@@ -292,11 +243,10 @@ void dySky_h::compute_skyline_wrt_missing_spos(Config* cfg, vector<vector<Order>
 			int best_value=missing_spos[i][0].first;
 			int worst_value=missing_spos[i][0].second;
 			//cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
-			
-			if (best_value!=-1){
+			vector<Point> branch_dataset;
+			if (best_value!=worst_value){
 				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 				// partitionner les donnees par rapport à cette dimension
-				vector<Point> branch_dataset;
 				for (int i=0; i<candidates_tuples.size(); i++){
 					if (candidates_tuples[i][cfg->statDim_size+1]==best_value){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
@@ -310,38 +260,22 @@ void dySky_h::compute_skyline_wrt_missing_spos(Config* cfg, vector<vector<Order>
 						branch_dataset.push_back(p);
 					}
 				}	
-				hybrid_compute_view_recursively_md(cfg, 1, branch_dataset, missing_spos[i], cSkyline);
-				
-				/////
-				//destroy Point pointers
-				for ( auto p : branch_dataset)
-				delete p;				
-			}
-			else{
-				//here, we parition by values in dimension 0 and we call the recursive function Order (-1,-1)
-		 		
-				//cout <<"niveau: "<<niveau<< " --> "<< "-1"<<" : "<<"-1"<<endl;
-				//auto start_time=omp_get_wtime();
-				map<int,vector<Point>> partitions;
+			}else {
 				for (auto tuple : candidates_tuples){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					partitions[p[1+cfg->statDim_size]].push_back(p);
+					if(tuple[1+cfg->statDim_size]==best_value){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						branch_dataset.push_back(p);
+					}
 				}
-
-				this->sky_view[Order(-1,-1)]=new order_tree;
-
-				
-				for (auto partition : partitions){
-					hybrid_compute_view_recursively_md(cfg, 1, partition.second, missing_spos[i], cSkyline);
-				}
-
-				/////
-				//destroy Point pointers
-				for ( auto partition : partitions)
-				for ( auto p : partition.second)
-				delete p;
 			}
+
+			hybrid_compute_view_recursively_md(cfg, 1, branch_dataset, missing_spos[i], cSkyline);
+				
+			/////
+			//destroy Point pointers
+			for ( auto p : branch_dataset)
+			delete p;				
 		}
 	}
 }
@@ -398,17 +332,17 @@ vector<id> dySky_h::hybrid_compute_skyline(Config* cfg, vector<vector<Order>> pr
 	return skyline_result;
 }
 
-void dySky_h::views_selection(Config* cfg, uint64_t max_storage){
+void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &workload){
 	
 	
 	//generate workload
 
-	vector<Query> workload(cfg->dyDim_val*3);
-	for (int q=0; q<workload.size(); q++){
-		workload[q].generate_preference(cfg);
-		workload[q].graph_to_orderPairs(cfg);
-		workload[q].cross_orders_over_dimensions(cfg);
-	}
+	// vector<Query> workload(cfg->dyDim_val*3);
+	// for (int q=0; q<workload.size(); q++){
+	// 	workload[q].generate_preference(cfg);
+	// 	workload[q].graph_to_orderPairs(cfg);
+	// 	workload[q].cross_orders_over_dimensions(cfg);
+	// }
 
 	// compute gain of each spo
 	map<vector<Order>, int> gain;
@@ -495,59 +429,61 @@ int dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids)
 	cout << "knapsack Algo starts "<<endl;
 	cout << "Available memory resources: "<< W<<endl;
 
-int i, w; 
-//int K[n+1][W+1]; 
-//bool keep[n+1][W+1];
+	int i, w; 
+	//int K[n+1][W+1]; 
+	//bool keep[n+1][W+1];
 
-int* K= new int[W+1];
-int* K_temp= new int[W+1];
-for (i=0; i< W+1; i++) K_temp[i]=0;
-//for(int i=0; i<n+1; i++) K[i]=new int[W+1];
-// vector<bool*> keep= vector<bool*>(n+1);
-// for(int i=0; i<n+1; i++) keep[i]=new bool[W+1];
+	int* K= new int[W+1];
+	int* K_temp= new int[W+1];
+	for (i=0; i< W+1; i++) K_temp[i]=0;
+	//for(int i=0; i<n+1; i++) K[i]=new int[W+1];
+	// vector<bool*> keep= vector<bool*>(n+1);
+	// for(int i=0; i<n+1; i++) keep[i]=new bool[W+1];
 
-// for (i = 0; i <= n; i++) for (w = 0; w <= W; w++) keep[i][w]=0;
-vector<set<int>> keep(n+1);
-// Build table K[][] in bottom up manner 
-for (i = 0; i <= n; i++) 
-{ 
-	for (w = 0; w <= W; w++) 
+	// for (i = 0; i <= n; i++) for (w = 0; w <= W; w++) keep[i][w]=0;
+	vector<set<int>> keep(n+1);
+	// Build table K[][] in bottom up manner 
+	for (i = 0; i <= n; i++) 
 	{ 
-		if (w==0) 
-			K[w] = 0; 
-		else if (wt[i-1] <= w && val[i-1] + K_temp[w-wt[i-1]] > K_temp[w]){ 
-			K[w] = val[i-1] + K_temp[w-wt[i-1]];
-			keep[i].insert(w); 
-		}	
-		else{
-			K[w] = K_temp[w];
-			//keep[i][w]=0;
-		}
+		for (w = 0; w <= W; w++) 
+		{ 
+			if (w==0) 
+				K[w] = 0; 
+			else if (wt[i-1] <= w && val[i-1] + K_temp[w-wt[i-1]] > K_temp[w]){ 
+				K[w] = val[i-1] + K_temp[w-wt[i-1]];
+				keep[i].insert(w); 
+			}	
+			else{
+				K[w] = K_temp[w];
+				//keep[i][w]=0;
+			}
+		} 
+		for (int j=0; j< W+1; j++) K_temp[j]=K[j];
 	} 
-	for (int j=0; j< W+1; j++) K_temp[j]=K[j];
-} 
 
-//for (auto k : K) delete k;
+	delete K; delete K_temp;
 
-cout << "Selected spo: "<<endl;
+	//for (auto k : K) delete k;
 
-int total_gain=0;
-int total_poids=0;
+	cout << "Selected spo: "<<endl;
 
-int X=W;
-for (i=n; i>=1; i--){
-	if (keep[i].find(X)!=keep[i].end()){
-		cout << "spo: " << i-1 << ",gain: "<< val[i-1]<< ",weight: "<< wt[i-1]<<endl;
-		spo_ids.push_back(i-1);
-		total_poids+=wt[i-1];
-		total_gain+=val[i-1];
-		X=X-wt[i-1];
+	int total_gain=0;
+	int total_poids=0;
+
+	int X=W;
+	for (i=n; i>=1; i--){
+		if (keep[i].find(X)!=keep[i].end()){
+			cout << "spo: " << i-1 << ",gain: "<< val[i-1]<< ",weight: "<< wt[i-1]<<endl;
+			spo_ids.push_back(i-1);
+			total_poids+=wt[i-1];
+			total_gain+=val[i-1];
+			X=X-wt[i-1];
+		}
 	}
-}
 
-cout <<"Gain total: "<<total_gain<<", Poids total: " <<total_poids<<endl;
+	cout <<"Gain total: "<<total_gain<<", Poids total: " <<total_poids<<endl;
 
-return K[W]; 
+	return K[W]; 
 } 
 
 void dySky_h::comb(int N, vector<vector<int>> &all_combination)

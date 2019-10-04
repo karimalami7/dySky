@@ -88,11 +88,11 @@ int main(int argc, char** argv) {
     uint64_t storage;
     bool selectedMethod[]={
     	true, //dysky_m
-    	true, //dysky_v
-    	true, //cps
+    	false, //dysky_v
+    	false, //cps
     	false, //tos
     	false, //arg
-    	true, //dysky_h
+    	false, //dysky_h
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -110,6 +110,15 @@ int main(int argc, char** argv) {
 	//
 	//dysky_m.print_dataset(cfg);
 	//
+	//********************************************
+	// generate workload
+	vector<Query> workload(cfg->workload_size);
+	for (int q=0; q<cfg->workload_size; q++){
+		workload[q].generate_preference(cfg);
+		workload[q].graph_to_orderPairs(cfg);
+		workload[q].cross_orders_over_dimensions(cfg);
+	}
+	//********************************
 	cfg->to_dataset=dysky_m.to_dataset;
 	cfg->po_dataset=dysky_m.po_dataset;
 	//
@@ -189,7 +198,7 @@ int main(int argc, char** argv) {
 		start_time2=omp_get_wtime();
 		storage=0;
 		dysky_h.compute_views(cfg, all_orders, &storage);
-		dysky_h.views_selection(cfg, storage);
+		dysky_h.views_selection(cfg, storage, workload);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
@@ -206,8 +215,8 @@ int main(int argc, char** argv) {
 	string const nomFichier1("logs/performance-"+to_string(cfg->dataset_size)+"-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dyDim_size)+"-"+to_string(cfg->dyDim_val));
     ofstream monFlux1(nomFichier1.c_str());
 
-  	cerr << "---QUERY ANSWERING---"<<endl<<endl;
-  	cout << "---QUERY ANSWERING---"<<endl<<endl;
+  	// cerr << "---QUERY ANSWERING---"<<endl<<endl;
+  	//cout << "---QUERY ANSWERING---"<<endl<<endl;
 
 	//**************************************************************************************
 	// print query answering performance
@@ -241,7 +250,7 @@ int main(int argc, char** argv) {
 	
   	// input preference
 	//cerr << "Input preference: "<<endl;
-	vector<Query> workload(cfg->workload_size);
+
 	for (int q=0; q<cfg->workload_size; q++){
 
 		cerr <<"Query n° "<<q<<endl<<endl;
@@ -250,19 +259,19 @@ int main(int argc, char** argv) {
 		map<string, int> results; // to compare results of all methods
 		int size_result; 
 
-		workload[q].generate_preference(cfg);
-		workload[q].graph_to_orderPairs(cfg);
-		workload[q].cross_orders_over_dimensions(cfg);
-		//cout << "query preferences: "<<endl;
+		// workload[q].generate_preference(cfg);
+		// workload[q].graph_to_orderPairs(cfg);
+		// workload[q].cross_orders_over_dimensions(cfg);
+		////cout << "query preferences: "<<endl;
 		// for (int i=0; i<cfg->dyDim_size; i++){
 		// 	workload[q].preference[i].print_edges();
-		// 	cout <<endl;
+		// 	//cout <<endl;
 		// }	
 
 		// dySky_m: skyline query answering by dySky using materialized views
 		if(selectedMethod[0]==true){
 			cerr << "=====dySky: materialized views=====" <<endl;
-			cout << "=====dySky: materialized views=====" <<endl;
+			//cout << "=====dySky: materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			results["dysky_m"]=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
 			processing_time["dysky_m"]=processing_time["dysky_m"]+(omp_get_wtime()-start_time);
@@ -350,8 +359,8 @@ int main(int argc, char** argv) {
 
 		// dysky_h: skyline query answering by dySky using partially materialized views
 		if(selectedMethod[5]==true){
-			cerr << "=====dySky: partially materialized views=====" <<endl;
-			cout << "=====dySky: partially materialized views=====" <<endl;
+			// cerr << "=====dySky: partially materialized views=====" <<endl;
+			// cout << "=====dySky: partially materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			// compute hybrid skyline
 			results["dysky_h"]=dysky_h.hybrid_compute_skyline(cfg, workload[q].preference_orders_cross).size();
