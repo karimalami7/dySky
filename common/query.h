@@ -38,11 +38,12 @@ void Query::generate_preference(Config* cfg){
 	for (int i=0; i<cfg->dyDim_size; i++ ){
 	
 		int iteration=0;
-		int max_iteration=rand()%(2*cfg->dyDim_val);
-
+		int max_iteration=rand()%(5*cfg->dyDim_val);
+		
 		this->preference[i].add_vertices(cfg->dyDim_val);
 
-		while (iteration < max_iteration || this->preference[i].out_edges.size()==0) {
+		//while (iteration < max_iteration || this->preference[i].out_edges.size()==0) {
+		while (iteration < max_iteration) {
 			int v1=rand()%cfg->dyDim_val;
 			int v2=rand()%cfg->dyDim_val;
 			while (v1==v2){
@@ -80,8 +81,15 @@ void Query::graph_to_orderPairs(Config* cfg){
 		for (int value : non_ordered_values){ 
 			this->preference_orders[i].push_back(Order(value,value));
 		}	
-		
 	}
+
+	// print number of sequences
+	int num_seq=1;
+	for (int i=0; i<cfg->dyDim_size; i++){
+		num_seq*=this->preference_orders[i].size();
+	}
+	cerr << "number of sequences of this query: "<< num_seq<<endl;
+
 }
 
 void Query::recur_cross(Config* cfg, vector<Order> v, int niv){

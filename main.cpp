@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 	}
-	time_t val=14430157;
+	time_t val=144301578;
     srand (val);
 
     printConfig(cfg);
@@ -87,12 +87,12 @@ int main(int argc, char** argv) {
     ofstream myFile(fileName);
     uint64_t storage;
     bool selectedMethod[]={
-    	true, //dysky_m
+    	false, //dysky_m
     	false, //dysky_v
     	false, //cps
     	false, //tos
     	false, //arg
-    	false, //dysky_h
+    	true, //dysky_h
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -112,11 +112,22 @@ int main(int argc, char** argv) {
 	//
 	//********************************************
 	// generate workload
+	int compteur_query=0;
 	vector<Query> workload(cfg->workload_size);
 	for (int q=0; q<cfg->workload_size; q++){
+		cerr << compteur_query<<endl;
 		workload[q].generate_preference(cfg);
 		workload[q].graph_to_orderPairs(cfg);
 		workload[q].cross_orders_over_dimensions(cfg);
+		compteur_query++;
+	}
+	vector<Query> workload2(1000);
+	for (int q=0; q<workload2.size(); q++){
+		//cerr << compteur_query<<endl;
+		workload2[q].generate_preference(cfg);
+		workload2[q].graph_to_orderPairs(cfg);
+		workload2[q].cross_orders_over_dimensions(cfg);
+		//compteur_query++;
 	}
 	//********************************
 	cfg->to_dataset=dysky_m.to_dataset;
@@ -175,7 +186,7 @@ int main(int argc, char** argv) {
 		cout << "=====Arg=====" <<endl;
 		start_time=omp_get_wtime();
 		storage=0;
-		arg.compute_views(cfg, &storage);
+		arg.compute_views(cfg, &storage, workload2);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for all ARG: "<< omp_get_wtime()-start_time << endl;
 	}	
@@ -198,7 +209,7 @@ int main(int argc, char** argv) {
 		start_time2=omp_get_wtime();
 		storage=0;
 		dysky_h.compute_views(cfg, all_orders, &storage);
-		dysky_h.views_selection(cfg, storage, workload);
+		dysky_h.views_selection(cfg, 16, workload);
 		cerr<<"--> Total storage: "<< storage << endl;
 		cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;
 		cerr<<"--> Time for all dySky: "<< omp_get_wtime()-start_time << endl;
@@ -299,6 +310,7 @@ int main(int argc, char** argv) {
 			start_time2=omp_get_wtime();
 			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
 			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
+			cerr<<"--> Time for computing query: "<< omp_get_wtime()-start_time << endl;
 			processing_time["dysky_v"]=processing_time["dysky_v"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_v"] << endl;
@@ -359,8 +371,8 @@ int main(int argc, char** argv) {
 
 		// dysky_h: skyline query answering by dySky using partially materialized views
 		if(selectedMethod[5]==true){
-			// cerr << "=====dySky: partially materialized views=====" <<endl;
-			// cout << "=====dySky: partially materialized views=====" <<endl;
+			cerr << "=====dySky: partially materialized views=====" <<endl;
+			cout << "=====dySky: partially materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			// compute hybrid skyline
 			results["dysky_h"]=dysky_h.hybrid_compute_skyline(cfg, workload[q].preference_orders_cross).size();

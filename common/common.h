@@ -23,6 +23,7 @@
 #include <sys/sysinfo.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 using namespace std;
 

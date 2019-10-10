@@ -21,13 +21,13 @@ class dySky_h: public dySky {
 
 	dySky_h(Config *cfg);
 	
-	void views_selection(Config* cfg, uint64_t max_storage, vector<Query> &workload);
+	void views_selection(Config* cfg, int fraction, vector<Query> &workload);
 
 	vector<id> hybrid_compute_skyline(Config* cfg, vector<vector<Order>> preference_cross);
 	void hybrid_compute_view_1d(Config* cfg, vector<Point> &dataset, Order o, bool* cSkyline);
 	void compute_skyline_wrt_missing_spos(Config* cfg, vector<vector<Order>> missing_spos, bool* cSkyline);
 	void hybrid_compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<Order> spo, bool* cSkyline);
-	int knapSack(int W, int wt[], int val[], int n, vector <int> &selected_spos); 
+	void knapSack(int W, int wt[], int val[], int n, vector <int> &selected_spos); 
 	void comb(int N, vector<vector<int>> &all_combination);
 };
 
@@ -332,7 +332,7 @@ vector<id> dySky_h::hybrid_compute_skyline(Config* cfg, vector<vector<Order>> pr
 	return skyline_result;
 }
 
-void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &workload){
+void dySky_h::views_selection(Config* cfg, int fraction, vector<Query> &workload){
 	
 	
 	//generate workload
@@ -358,7 +358,7 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &
 		} 
 	}
 
-	cout <<"total number of spos: "<<gain.size()<<endl;
+	cout <<"total number of spos of the workload: "<<gain.size()<<endl;
 
 	// fill weight and value arrays
 
@@ -392,14 +392,23 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &
 	cout << "Memory required to store all spos: "<< total_required_memory<<endl;
 	cout << "Maximum Gain: "<< total_gain<<endl;
 
-	
 	vector<int> selected_spos_id;
-	knapSack(max_storage, wt, val, gain.size(), selected_spos_id) ;
+	if (fraction==1){
+		cout << "no need of knapsack"<<endl;
+		for (int i=0; i<gain.size(); i++){
+			selected_spos_id.push_back(i);
+		}
+	}
+	else {
+		cout << "go to knapsack"<<endl;
+		knapSack(total_required_memory/fraction, wt, val, gain.size(), selected_spos_id);
+	}
+
 
 
 	// keep selected spos
 
-
+	cout <<"h1"<<endl;
 	for (auto id_spo : selected_spos_id){
 		
 		auto it=gain.begin();
@@ -415,6 +424,7 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &
 		this->selected_spos.insert(pair<vector<Order>, vector<id>>(it->first,ot->ids));
 		delete ot;
 	}
+	cout <<"h2"<<endl;
 }
 
 
@@ -423,7 +433,7 @@ void dySky_h::views_selection(Config* cfg, uint64_t max_storage, vector<Query> &
 // int max(int a, int b) { return (a > b)? a : b; } 
 
 // Returns the maximum value that can be put in a knapsack of capacity W 
-int dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids) 
+void dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids) 
 { 	
 	cout << "****************************"<<endl;
 	cout << "knapsack Algo starts "<<endl;
@@ -482,8 +492,8 @@ int dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids)
 	}
 
 	cout <<"Gain total: "<<total_gain<<", Poids total: " <<total_poids<<endl;
-
-	return K[W]; 
+	
+	//return K[W]; 
 } 
 
 void dySky_h::comb(int N, vector<vector<int>> &all_combination)
