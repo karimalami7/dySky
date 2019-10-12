@@ -10,11 +10,11 @@
 #include "common/graph.h"
 #include "common/preference.h"
 #include "common/query.h"
-#include "cps/cps.h"
+#include "CPS/cps.h"
 #include "dySky/dySky.h"
 #include "dySky/dySky_h.h"
-#include "arg/arg.h"
-#include "tos/tos.h"
+#include "Ref/arg.h"
+#include "OST/tos.h"
 #include <omp.h>
 
 using namespace std;
