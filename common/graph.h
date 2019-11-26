@@ -8,15 +8,21 @@
 template <typename T>
 class Graph
 {
-public:
+	public:
+
 	vector<T> vertices;
 	unordered_map<T,unordered_set<T> > out_edges;
 	vector<int> vertex_color;
-
-	void add_vertices(vector<T> vertices);
-	void add_outedges(T vertex_source, unordered_set<T> vertices_destination);
-	void add_outedge(T vertex_source, T vertex_destination);
+	
+	// Setters 
+	void set_vertices(vector<T> vertices);
+	void set_outedges(T vertex_source, unordered_set<T> vertices_destination);
+	// Getters
+	vector<T> get_vertices();
 	unordered_map<T,unordered_set<T> > get_edges();
+	
+	// Methods	
+	void add_outedge(T vertex_source, T vertex_destination);
 	void print_vertices();
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
@@ -26,14 +32,17 @@ public:
 
 };
 
+
+// Setters 
 template <typename T>
-void Graph<T>::add_vertices(vector<T> vertices){
+void Graph<T>::set_vertices(vector<T> vertices){
 	this->vertices=vertices;
 }
 
 template <typename T>
-void Graph<T>::add_outedges(T vertex_source, unordered_set<T> vertices_destination){
+void Graph<T>::set_outedges(T vertex_source, unordered_set<T> vertices_destination){
 	auto it = this->out_edges.find(vertex_source);
+	// if vertex_source has already an out_edge
 	if(it!=this->out_edges.end()){
 		for (auto it2=vertices_destination.begin();it2!=vertices_destination.end();it2++){
 			it->second.insert(*it2);
@@ -43,7 +52,18 @@ void Graph<T>::add_outedges(T vertex_source, unordered_set<T> vertices_destinati
 		this->out_edges.insert(pair<T,unordered_set<T> >(vertex_source,vertices_destination));
 	}
 }
+// Getters
+template <typename T>
+vector<T> Graph<T>::get_vertices(){
+	return this->vertices;
+}
 
+template <typename T>
+unordered_map<T,unordered_set<T> > Graph<T>::get_edges(){
+	return this->out_edges;
+}
+
+// Methods
 template <typename T>
 void Graph<T>::add_outedge(T vertex_source, T vertex_destination){
 	auto it = this->out_edges.find(vertex_source);
@@ -57,10 +77,6 @@ void Graph<T>::add_outedge(T vertex_source, T vertex_destination){
 	}
 }
 
-template <typename T>
-unordered_map<T,unordered_set<T> > Graph<T>::get_edges(){
-	return this->out_edges;
-}
 template <typename T>
 void Graph<T>::print_vertices(){
 	//cout <<"vertices: ";
@@ -103,7 +119,7 @@ void Graph<T>::compute_transitive_closure(Graph<T> p){
 	for (auto it=p.out_edges.begin();it!=p.out_edges.end();it++){
 		unordered_set<int> vertices_dest;
 		recursive_add(p.out_edges,it->first,vertices_dest);
-		this->add_outedges(it->first,vertices_dest);
+		this->set_outedges(it->first,vertices_dest);
 	}
 }
 

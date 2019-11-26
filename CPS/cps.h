@@ -97,7 +97,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				if (it_source!=new_transitive_preference.out_edges.end()){
 					if (it_source->second.find(incomparable_pairs[j].second)!=it_source->second.end()){
 						// cout << "++++++++ induced pair: "<<incomparable_pairs[j].first <<" "<<incomparable_pairs[j].second<<endl;
-						consistency_graph.add_outedges(i,{j});
+						consistency_graph.set_outedges(i,{j});
 					}
 				}
 			}
@@ -144,7 +144,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 				if (it_source!=new_transitive_preference.out_edges.end()){
 					if (it_source->second.find(non_induced_pairs[j].first)!=it_source->second.end()){
 						////cout << "++++++++ incompatible pair: "<<non_induced_pairs[j].first <<" "<<non_induced_pairs[j].second<<endl;
-						incompatibility_graph.add_outedges(i,{j});
+						incompatibility_graph.set_outedges(i,{j});
 					}
 				}
 			}
@@ -209,7 +209,7 @@ void Cps::decompose_preference(Graph<int> p, Config *cfg, int i){
 			for (int j=0;j<incompatibility_graph.vertex_color.size();j++){
 				// add vertices with the same color
 				if (color==incompatibility_graph.vertex_color[j]){
-					pre_chain.add_outedges(non_induced_pairs[j].first,{non_induced_pairs[j].second});
+					pre_chain.set_outedges(non_induced_pairs[j].first,{non_induced_pairs[j].second});
 				}
 			}
 			// cout <<"avant transitivite"<<endl;

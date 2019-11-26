@@ -400,8 +400,19 @@ void dySky_h::views_selection(Config* cfg, int fraction, vector<Query> &workload
 		}
 	}
 	else {
-		cout << "go to knapsack"<<endl;
-		knapSack(total_required_memory/fraction, wt, val, gain.size(), selected_spos_id);
+		// cout << "go to knapsack"<<endl;
+		// knapSack(total_required_memory/fraction, wt, val, gain.size(), selected_spos_id);
+
+		cout << "random selection "<< gain.size()<<endl;
+		int available_memory=total_required_memory/fraction;
+		int i;
+		while (available_memory>0){
+			i=rand()%(gain.size()-1);
+			cout << i << endl;
+			selected_spos_id.push_back(i);
+			//i++;
+			available_memory-=wt[i];
+		}
 	}
 
 
@@ -410,7 +421,7 @@ void dySky_h::views_selection(Config* cfg, int fraction, vector<Query> &workload
 
 	cout <<"h1"<<endl;
 	for (auto id_spo : selected_spos_id){
-		
+		cout << id_spo <<endl;
 		auto it=gain.begin();
 		for(int i=0;i<id_spo;i++) it++;
 
@@ -455,6 +466,7 @@ void dySky_h::knapSack(int W, int wt[], int val[], int n, vector<int> &spo_ids)
 	// Build table K[][] in bottom up manner 
 	for (i = 0; i <= n; i++) 
 	{ 
+		cout << "p: "<<i<<endl;
 		for (w = 0; w <= W; w++) 
 		{ 
 			if (w==0) 

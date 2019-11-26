@@ -59,7 +59,6 @@ struct chain_tree{
 };
 
 
-
 void generate_all_orders(Config *cfg, vector<vector<Order>> &all_orders);
 
 void printConfig(Config *cfg);

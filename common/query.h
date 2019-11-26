@@ -9,53 +9,29 @@ class Query {
 
 public:
 
-	vector<Preference> preference;
-	vector<vector<Order>> preference_orders;
-	vector<vector<Order>> preference_orders_cross; 
+	vector<Preference> preference; // for every dimension, we have a DAG
+	vector<vector<Order>> preference_orders; // for every dimension, we have a set of "Order"
+	vector<vector<Order>> preference_orders_cross; // we cross orders between dimensions
 	
-	void generate_preference(Config* cfg);
+	Query();
+	Query(Config* cfg);
 	void graph_to_orderPairs(Config* cfg);
 	void cross_orders_over_dimensions(Config* cfg);
 	void recur_cross(Config* cfg, vector<Order> v, int niv);
 };
-
-void Query::generate_preference(Config* cfg){
-
-	// generate a dag using the values of the po domain
-
-	// 1. choose randomely two values vi vj
-
-	// 2. check if the preference + (vi,vj) is still a DAG
-
-		// 2.1 if yes, store it
-
-		// 2.2 if no, throw it
-
-	// repeat 1 and 2 until the preference reaches the wanted properties
-
-	preference=vector<Preference>(cfg->dyDim_size);
-
-	for (int i=0; i<cfg->dyDim_size; i++ ){
+Query::Query(){
 	
-		int iteration=0;
-		int max_iteration=rand()%(5*cfg->dyDim_val);
-		
-		this->preference[i].add_vertices(cfg->dyDim_val);
+}
+Query::Query(Config* cfg){
 
-		//while (iteration < max_iteration || this->preference[i].out_edges.size()==0) {
-		while (iteration < max_iteration) {
-			int v1=rand()%cfg->dyDim_val;
-			int v2=rand()%cfg->dyDim_val;
-			while (v1==v2){
-				v2=rand()%cfg->dyDim_val;
-			}  
-			if(this->preference[i].is_DAG(Order(v1,v2))){
-				this->preference[i].add_outedge(v1,v2);
-			}
-			iteration++;
-		}
-		this->preference[i].compute_transitive_closure(this->preference[i]);
+	preference= vector<Preference>(cfg->dyDim_size);
+	
+	for (int i=0; i<cfg->dyDim_size; i++ ){
+		this->preference[i].generate_preference(cfg);
+		this->graph_to_orderPairs(cfg);
+		this->cross_orders_over_dimensions(cfg);
 	}
+
 }
 
 void Query::graph_to_orderPairs(Config* cfg){
@@ -86,6 +62,7 @@ void Query::graph_to_orderPairs(Config* cfg){
 	// print number of sequences
 	int num_seq=1;
 	for (int i=0; i<cfg->dyDim_size; i++){
+		cout << "number of orders: "<< this->preference_orders[i].size()<<endl;
 		num_seq*=this->preference_orders[i].size();
 	}
 	cerr << "number of sequences of this query: "<< num_seq<<endl;

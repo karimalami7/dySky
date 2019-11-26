@@ -13,6 +13,7 @@
 #include "CPS/cps.h"
 #include "dySky/dySky.h"
 #include "dySky/dySky_h.h"
+#include "dySky/dySky_v.h"
 #include "Ref/arg.h"
 #include "OST/tos.h"
 #include <omp.h>
@@ -88,11 +89,11 @@ int main(int argc, char** argv) {
     uint64_t storage;
     bool selectedMethod[]={
     	false, //dysky_m
-    	false, //dysky_v
-    	false, //cps
+    	true, //dysky_v
+    	true, //cps
     	false, //tos
     	false, //arg
-    	true, //dysky_h
+    	false, //dysky_h
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -102,6 +103,7 @@ int main(int argc, char** argv) {
 	cout << "---PREPROCESSING---"<<endl<<endl;
 
 	// start for pre processing
+	cerr << "=====data and queries generation=====" <<endl;
 	dySky dysky_m(cfg);
 	// generate total order data
 	dysky_m.generate_to_data(cfg);
@@ -114,21 +116,13 @@ int main(int argc, char** argv) {
 	// generate workload
 	int compteur_query=0;
 	vector<Query> workload(cfg->workload_size);
-	for (int q=0; q<cfg->workload_size; q++){
-		cerr << compteur_query<<endl;
-		workload[q].generate_preference(cfg);
-		workload[q].graph_to_orderPairs(cfg);
-		workload[q].cross_orders_over_dimensions(cfg);
-		compteur_query++;
+	for (int i=0; i<cfg->workload_size; i++){
+		cerr << "compteur query: "<<i<<endl;
+		Query q(cfg);
+		q.preference[i].find_heads(cfg);
+		workload[i]=q;
 	}
 	vector<Query> workload2(1000);
-	for (int q=0; q<workload2.size(); q++){
-		//cerr << compteur_query<<endl;
-		workload2[q].generate_preference(cfg);
-		workload2[q].graph_to_orderPairs(cfg);
-		workload2[q].cross_orders_over_dimensions(cfg);
-		//compteur_query++;
-	}
 	//********************************
 	cfg->to_dataset=dysky_m.to_dataset;
 	cfg->po_dataset=dysky_m.po_dataset;
@@ -182,6 +176,12 @@ int main(int argc, char** argv) {
 	//ARG: compute skyline view wrt some partial order
 	Arg arg;
 	if(selectedMethod[4]==true){
+		for (int i=0; i<workload2.size(); ++i){
+			//cerr << compteur_query<<endl;
+			Query q(cfg);
+			workload2[i]=q;
+			//compteur_query++;
+		}
 		cerr << "=====Arg=====" <<endl;
 		cout << "=====Arg=====" <<endl;
 		start_time=omp_get_wtime();
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
 		if(selectedMethod[1]==true){
 			cerr << "=====dySky: virtual views=====" <<endl;
 			cout << "=====dySky: virtual views=====" <<endl;
-			dySky dysky_v(cfg);
+			dySky_v dysky_v(cfg);
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
 			start_time=omp_get_wtime();

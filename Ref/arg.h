@@ -90,8 +90,8 @@ void Arg::compute_view_recursively(Config *cfg, int niveau, vector<Preference> p
 	
 	for (int id_view=0; id_view<workload.size(); id_view++){
 		// cout << "id_view: "<< id_view<<endl;
-		Query q;
-		q.generate_preference(cfg);
+		Query q(cfg);
+		//q.generate_preference(cfg);
 		// q.preference[0].print_edges();
 		// cout << endl;
 

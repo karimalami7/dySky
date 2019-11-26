@@ -17,7 +17,7 @@
 #include <omp.h>
 using namespace std;
 
-class dySky {
+class dySky_v {
 	public:
 	vector<Point> to_dataset;
 	vector<vector<int>> po_dataset;
@@ -32,7 +32,7 @@ class dySky {
 	
 	void print_dataset (Config* cfg);
 	void print_dataset (vector<Point> data, string name, int d);
-	dySky(Config *cfg);
+	dySky_v(Config *cfg);
 	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage);
 	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
 	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
@@ -40,17 +40,17 @@ class dySky {
 
 };
 
-dySky::dySky(Config *cfg){
+dySky_v::dySky_v(Config *cfg){
 	this->po_dataset=vector<vector<int>>(cfg->dataset_size);
 }
 
-void dySky::generate_to_data(Config* cfg){
+void dySky_v::generate_to_data(Config* cfg){
 	loadData("ANTI","",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
 
 	
 } 
 
-void dySky::generate_po_data(Config* cfg){
+void dySky_v::generate_po_data(Config* cfg){
 	for (int j=0;j<cfg->dyDim_size;j++) {
 		for (int i=0; i<cfg->dataset_size; i++){
 			this->po_dataset[i].push_back(rand()%cfg->dyDim_val);
@@ -59,7 +59,7 @@ void dySky::generate_po_data(Config* cfg){
 }
 
 
-void dySky::print_dataset (Config* cfg){
+void dySky_v::print_dataset (Config* cfg){
 
     string const nomFichier1("INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
     ofstream monFlux1(nomFichier1.c_str());
@@ -76,7 +76,7 @@ void dySky::print_dataset (Config* cfg){
     }
 }
 
-void dySky::print_dataset (vector<Point> data, string name, int d){
+void dySky_v::print_dataset (vector<Point> data, string name, int d){
 
     //string  nomFichier1(string);
     ofstream monFlux1(name);
@@ -91,7 +91,7 @@ void dySky::print_dataset (vector<Point> data, string name, int d){
     }
 }
 
-int dySky::compute_candidates(Config* cfg){
+int dySky_v::compute_candidates(Config* cfg){
 	cout << "dySky::compute_candidates"<<endl;
 
 	// cluster dataset depending on the value in the po dimenion
@@ -126,7 +126,7 @@ int dySky::compute_candidates(Config* cfg){
 }
 
 
-void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
+void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
 	
 	#pragma omp parallel for schedule(dynamic)
 	for(int i=0;i<preference_orders[0].size();i++){
@@ -191,7 +191,7 @@ void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<O
 	}
 }
 
-void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage){
+void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage){
 	cout << "dySky::compute_views" <<endl;
 
 	vector<Point> candidates_tuples;
@@ -260,7 +260,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 	}
 }
 
-void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
+void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
 	
 	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
 	for(int s=0;s<preference_orders[niveau].size();s++){
@@ -385,7 +385,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 
 
 
-vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_cross){
+vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preference_cross){
 	cout << "dySky::compute_skyline" <<endl;
 	// cerr << "dySky::compute_skyline" <<endl;
 	// for (int i=0;i<preference_cross.size();i++){
