@@ -28,9 +28,9 @@ Query::Query(Config* cfg){
 	
 	for (int i=0; i<cfg->dyDim_size; i++ ){
 		this->preference[i].generate_preference(cfg);
-		this->graph_to_orderPairs(cfg);
-		this->cross_orders_over_dimensions(cfg);
 	}
+	this->graph_to_orderPairs(cfg);
+	this->cross_orders_over_dimensions(cfg);
 
 }
 
