@@ -41,12 +41,13 @@ void Preference::generate_preference(Config* cfg){
 
 	// repeat 1 and 2 until the preference reaches the wanted properties
 	
-	int iteration=0;
-	int max_iteration=rand()%(5*cfg->dyDim_val);
-	
 	this->add_vertices(cfg->dyDim_val);
 
-	//while (iteration < max_iteration || this->preference[i].out_edges.size()==0) {
+	//random preference setting
+
+	int iteration=0;
+	int max_iteration=rand()%(10*cfg->dyDim_val);
+
 	while (iteration < max_iteration) {
 		int v1=rand()%cfg->dyDim_val;
 		int v2=rand()%cfg->dyDim_val;
@@ -58,7 +59,12 @@ void Preference::generate_preference(Config* cfg){
 		}
 		iteration++;
 	}
-	this->compute_transitive_reduction(*this);
+
+	//manual preference setting
+
+	// this->add_outedge(0,1);
+	// this->add_outedge(1,2);
+	
 }
 
 vector<int> Preference::find_heads(Config* cfg){
@@ -98,6 +104,7 @@ void Preference::aux_path(int value, vector<int> path, vector<vector<int>> &path
 		for (auto val: out_edges[value]){
 			path.push_back(val);
 			aux_path(val, path, paths);	
+			path.pop_back();
 		}
 	}
 }

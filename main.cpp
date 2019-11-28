@@ -14,6 +14,7 @@
 #include "dySky/dySky.h"
 #include "dySky/dySky_h.h"
 #include "dySky/dySky_v.h"
+#include "dySky/dySky_v_chains.h"
 #include "Ref/arg.h"
 #include "OST/tos.h"
 #include <omp.h>
@@ -89,8 +90,8 @@ int main(int argc, char** argv) {
     uint64_t storage;
     bool selectedMethod[]={
     	false, //dysky_m
-    	false, //dysky_v
-    	false, //cps
+    	true, //dysky_v
+    	true, //cps
     	false, //tos
     	false, //arg
     	false, //dysky_h
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
 	// generate partial order data
 	dysky_m.generate_po_data(cfg);
 	//
-	//dysky_m.print_dataset(cfg);
+	dysky_m.print_dataset(cfg);
 	//
 	//********************************************
 	// generate workload
@@ -296,6 +297,7 @@ int main(int argc, char** argv) {
 			cerr << "=====dySky: on the fly=====" <<endl;
 			cout << "=====dySky: on the fly=====" <<endl;
 			dySky_v dysky_v(cfg);
+			//dySky_v_chains dysky_v(cfg);
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
 			start_time=omp_get_wtime();
@@ -304,6 +306,7 @@ int main(int argc, char** argv) {
 			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
 			start_time2=omp_get_wtime();
 			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders).size();
+			//results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_chains).size();
 			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
 			processing_time["dysky_v"]=processing_time["dysky_v"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;

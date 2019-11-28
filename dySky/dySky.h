@@ -61,7 +61,7 @@ void dySky::generate_po_data(Config* cfg){
 
 void dySky::print_dataset (Config* cfg){
 
-    string const nomFichier1("INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
+    string const nomFichier1("datasets/INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
     ofstream monFlux1(nomFichier1.c_str());
 
     for (int i = 0; i < cfg->dataset_size ; i++)

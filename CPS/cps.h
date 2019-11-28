@@ -335,12 +335,13 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
 
+	sort(this->skyline_result.begin(),this->skyline_result.end());
+
  // 	cout << "print ids of skyline result" <<endl; 
 	// for (auto tuple : skyline_result){
 	// 	cout << tuple << endl;
 	// }
-   	sort(this->skyline_result.begin(),this->skyline_result.end());
-
+   	
     return this->skyline_result.size();
 }
 

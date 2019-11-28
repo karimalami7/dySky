@@ -10,7 +10,8 @@ class Query {
 public:
 
 	vector<Preference> preference; // for every dimension, we have a DAG
-	vector<vector<Order>> preference_orders; // for every dimension, we have a set of "Order"
+	vector<vector<Order>> preference_orders; // for every dimension, we have a set of "Order
+	vector<vector<chain>> preference_chains;
 	vector<vector<Order>> preference_orders_cross; // we cross orders between dimensions
 	
 	Query();
@@ -25,13 +26,22 @@ Query::Query(){
 Query::Query(Config* cfg){
 
 	preference= vector<Preference>(cfg->dyDim_size);
+	preference_chains= vector<vector<chain>>(cfg->dyDim_size);
 	
 	for (int i=0; i<cfg->dyDim_size; i++ ){
 		this->preference[i].generate_preference(cfg);
-		this->preference[i].print_edges();
-		this->preference[i].paths(cfg);
+		// cout <<"preference: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
+		this->preference[i].compute_transitive_reduction(this->preference[i]);
+		// cout <<"preference with transitive reduction: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
+		preference_chains[i]=this->preference[i].paths(cfg);
 		this->preference[i].compute_transitive_closure(this->preference[i]);
-		this->preference[i].print_edges();
+		// cout <<"preference with transitive closure: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
 	}
 	this->graph_to_orderPairs(cfg);
 	this->cross_orders_over_dimensions(cfg);

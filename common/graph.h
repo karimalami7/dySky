@@ -26,7 +26,7 @@ class Graph
 	void print_vertices();
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
-	void compute_transitive_reduction(Graph<T> G);
+	void compute_transitive_reduction(Graph<T> &G);
 	void greedyColoring(); 
 	bool is_subgraph(Graph<T> p); 
 	bool is_DAG(Order new_edge);
@@ -144,15 +144,27 @@ void Graph<T>::reachable(T value, set<T> &reachable_values){
 }
 
 template <typename T>
-void Graph<T>::compute_transitive_reduction(Graph<T> G){
+void Graph<T>::compute_transitive_reduction(Graph<T> &G){
 
 	for (auto it=G.out_edges.begin();it!=G.out_edges.end();it++){
+		cout <<"vertex: "<< it->first<<endl;
 		set<T> reachable_values;
 		reachable(it->first, reachable_values); 
-		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
-			if (reachable.find(*it2)!=reachable.end()){
+		cout <<"reachable_values: "<<endl;
+		for (auto elm: reachable_values) cout << elm << " ";
+		cout <<endl;
+		cout <<"out_edges: "<<endl;
+		for (auto elm: it->second) cout << elm << " ";
+		cout <<endl;
+		auto it2=it->second.begin();
+		while(it2!=it->second.end()){
+			if (reachable_values.find(*it2)!=reachable_values.end()){
 				//delete it2
-				it->second.erase(it2);
+				cout <<"delete "<<*it2<<endl;
+				it2=it->second.erase(it2);
+			}
+			else{
+				it2++;
 			}
 		}
 	}
