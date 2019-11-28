@@ -18,16 +18,16 @@
 for t in 96
 do
 
-for dataset_size in 100000
+for dataset_size in 10000
 do
 	for statDim in 6
 	do
 		for dyDim in 1
 		do
-			for value in 10
+			for value in 6
 			do
 				echo "-n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 2"
-				OMP_NUM_THREADS=$t ./exec_dySky -n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 1 #> cout 2> cerr
+				OMP_NUM_THREADS=$t ./exec_dySky -n $dataset_size -s $statDim -k 1000 -d $dyDim -m $value -q 1 #> cout 2> cerr
 				# mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value
 				# mv cerr ./logs/cerr-$dataset_size-$statDim-$dyDim-$value
 			done

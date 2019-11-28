@@ -13,7 +13,8 @@ class Preference : public Graph<int>{
 	void add_edges(id vertex_src, unordered_set<id> vertices_dest);
 	void generate_preference(Config* cfg);
 	vector<int> find_heads(Config* cfg);
-	void find_paths();
+	vector<vector<int>> paths(Config* cfg);
+	void aux_path(int value, vector<int> path, vector<vector<int>> &paths);
 };
 
 void Preference::add_vertices(int max_id){
@@ -57,7 +58,7 @@ void Preference::generate_preference(Config* cfg){
 		}
 		iteration++;
 	}
-	this->compute_transitive_closure(*this);
+	this->compute_transitive_reduction(*this);
 }
 
 vector<int> Preference::find_heads(Config* cfg){
@@ -75,14 +76,51 @@ vector<int> Preference::find_heads(Config* cfg){
 	vertices_with_incoming_edge.insert(vertices_with_incoming_edge.begin(), set_vertices_with_incoming_edge.begin(), set_vertices_with_incoming_edge.end());
 	sort(vertices_with_incoming_edge.begin(), vertices_with_incoming_edge.end());
 	
-	std::vector<int> v(this->vertices.size());                      
+	std::vector<int> heads(this->vertices.size());                      
 	std::vector<int>::iterator it;
-	it=std::set_difference (this->vertices.begin(), this->vertices.end(), vertices_with_incoming_edge.begin(), vertices_with_incoming_edge.end(), v.begin());
-	v.resize(it-v.begin());
+	it=std::set_difference (this->vertices.begin(), this->vertices.end(), vertices_with_incoming_edge.begin(), vertices_with_incoming_edge.end(), heads.begin());
+	heads.resize(it-heads.begin());
 
-	// for (auto vertex: vertices_with_incoming_edge){
-	// 	cout << "vertex: "<< vertex<< endl;
-	// }
+	cout <<"heads of the preference: "<<endl;
+	for (auto vertex: heads){
+		cout << "vertex: "<< vertex<< endl;
+	}
+	cout <<endl;
 
-	return vertices_with_incoming_edge;
+	return heads;
 }
+
+void Preference::aux_path(int value, vector<int> path, vector<vector<int>> &paths){
+	if (this->out_edges.find(value)==this->out_edges.end()){
+		paths.push_back(path);
+	}
+	else {
+		for (auto val: out_edges[value]){
+			path.push_back(val);
+			aux_path(val, path, paths);	
+		}
+	}
+}
+
+vector<vector<int>> Preference::paths(Config* cfg){
+
+	vector<int> heads=this->find_heads(cfg);
+	vector<vector<int>> paths;
+	int niveau=0;
+	for (auto head: heads){
+		vector<int> path;
+		path.push_back(head);
+		aux_path(head, path, paths);
+	}
+	cout <<"paths of the preference: "<<endl;
+	for (auto path: paths){
+		cout << "path: ";
+		for (auto val: path) {
+			cout << val << " ";
+		}
+		cout <<endl;
+	}
+	cout <<endl;
+	return paths;
+}
+

@@ -89,8 +89,8 @@ int main(int argc, char** argv) {
     uint64_t storage;
     bool selectedMethod[]={
     	false, //dysky_m
-    	true, //dysky_v
-    	true, //cps
+    	false, //dysky_v
+    	false, //cps
     	false, //tos
     	false, //arg
     	false, //dysky_h
@@ -119,7 +119,6 @@ int main(int argc, char** argv) {
 	for (int i=0; i<cfg->workload_size; i++){
 		cerr << "compteur query: "<<i<<endl;
 		Query q(cfg);
-		q.preference[i].find_heads(cfg);
 		workload[i]=q;
 	}
 	vector<Query> workload2(1000);
@@ -294,8 +293,8 @@ int main(int argc, char** argv) {
 
 		// dySky_v: skyline query answering by dySky using virtual views
 		if(selectedMethod[1]==true){
-			cerr << "=====dySky: virtual views=====" <<endl;
-			cout << "=====dySky: virtual views=====" <<endl;
+			cerr << "=====dySky: on the fly=====" <<endl;
+			cout << "=====dySky: on the fly=====" <<endl;
 			dySky_v dysky_v(cfg);
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
@@ -304,13 +303,8 @@ int main(int argc, char** argv) {
 			dysky_v.compute_candidates(cfg);
 			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
 			start_time2=omp_get_wtime();
-			storage=0;
-			dysky_v.compute_views(cfg, workload[q].preference_orders, &storage);
-			cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;		
-			start_time2=omp_get_wtime();
-			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
+			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders).size();
 			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
-			cerr<<"--> Time for computing query: "<< omp_get_wtime()-start_time << endl;
 			processing_time["dysky_v"]=processing_time["dysky_v"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_v"] << endl;
@@ -371,8 +365,8 @@ int main(int argc, char** argv) {
 
 		// dysky_h: skyline query answering by dySky using partially materialized views
 		if(selectedMethod[5]==true){
-			cerr << "=====dySky: partially materialized views=====" <<endl;
-			cout << "=====dySky: partially materialized views=====" <<endl;
+			cerr << "=====dySky: hybrid=====" <<endl;
+			cout << "=====dySky: hybrid=====" <<endl;
 			start_time=omp_get_wtime();
 			// compute hybrid skyline
 			results["dysky_h"]=dysky_h.hybrid_compute_skyline(cfg, workload[q].preference_orders_cross).size();

@@ -21,22 +21,18 @@ class dySky_v {
 	public:
 	vector<Point> to_dataset;
 	vector<vector<int>> po_dataset;
-	vector<map<int, vector<int>>> partition_ids;
+	vector<map<int, vector<id>>> partition_ids;
 	vector<id> never_sky;
 	vector<id> candidates;
-	unordered_map<Order, order_tree*, pairhash> sky_view;
 
-	void generate_to_data(Config* cfg); 
-	void generate_po_data(Config* cfg);
-	int compute_candidates(Config* cfg);
-	
-	void print_dataset (Config* cfg);
-	void print_dataset (vector<Point> data, string name, int d);
 	dySky_v(Config *cfg);
-	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage);
-	void compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
-	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage);
-	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference);
+
+	int compute_candidates(Config* cfg);
+	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, bool* notSkyline);
+	void compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline);
+	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline);
+	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference_orders);
+	void find_dominated(Config* cfg, vector<Point> &dominating, vector<Point> &dominated, vector<id> &notSky);
 
 };
 
@@ -44,52 +40,6 @@ dySky_v::dySky_v(Config *cfg){
 	this->po_dataset=vector<vector<int>>(cfg->dataset_size);
 }
 
-void dySky_v::generate_to_data(Config* cfg){
-	loadData("ANTI","",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
-
-	
-} 
-
-void dySky_v::generate_po_data(Config* cfg){
-	for (int j=0;j<cfg->dyDim_size;j++) {
-		for (int i=0; i<cfg->dataset_size; i++){
-			this->po_dataset[i].push_back(rand()%cfg->dyDim_val);
-		}
-	}
-}
-
-
-void dySky_v::print_dataset (Config* cfg){
-
-    string const nomFichier1("INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
-    ofstream monFlux1(nomFichier1.c_str());
-
-    for (int i = 0; i < cfg->dataset_size ; i++)
-    {
-        for (int j = 0; j <= cfg->statDim_size ; j++){
-            monFlux1 << this->to_dataset[i][j]<<";";  
-        }
-        for (int j = 0; j < cfg->dyDim_size ; j++){
-            monFlux1 << this->po_dataset[i][j]<< ";";  
-        } 
-        monFlux1 << endl;
-    }
-}
-
-void dySky_v::print_dataset (vector<Point> data, string name, int d){
-
-    //string  nomFichier1(string);
-    ofstream monFlux1(name);
-
-    for (int i = 0; i < data.size() ; i++)
-    {
-        for (int j = 0; j <= d ; j++){
-            monFlux1 << data[i][j]<<";";  
-        }
-
-        monFlux1 << endl;
-    }
-}
 
 int dySky_v::compute_candidates(Config* cfg){
 	cout << "dySky::compute_candidates"<<endl;
@@ -99,34 +49,41 @@ int dySky_v::compute_candidates(Config* cfg){
 	for (int i=0; i<cfg->dataset_size; i++){
 		partitions[this->po_dataset[i]].push_back(this->to_dataset[i]);
 	}
+	vector<vector<Point>> partitions_vec(partitions.size());
+	int i=0;
+	for (auto it_partition=partitions.begin(); it_partition!=partitions.end(); it_partition++){
+		partitions_vec[i]=it_partition->second;
+		i++;
+	}
 
 	// compute skyline for every partition -> always skyline + candidates
 	int All = (1<<cfg->statDim_size)-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
-    for (auto it_partition=partitions.begin(); it_partition!=partitions.end(); it_partition++){
+
+	bool* candidates_bool=new bool[cfg->dataset_size];
+	#pragma omp parallel for
+    for (int i=0; i<partitions_vec.size(); ++i){
     	vector<id> Skyline;
-    	Skyline=subspaceSkylineSize_TREE(full_Space, it_partition->second);
-    	this->candidates.insert(this->candidates.end(),
-    		Skyline.begin(), Skyline.end());
+    	Skyline=subspaceSkylineSize_TREE(full_Space, partitions_vec[i]);
+    	for (auto elm: Skyline) candidates_bool[elm]=true;
     }
-    sort (this->candidates.begin(),this->candidates.end());   
+	
+	for (int i=0; i<cfg->dataset_size; ++i){
+		if(candidates_bool[i]==true){
+			this->candidates.push_back(i);
+		}else {
+			this->never_sky.push_back(i);
+		}
+	}
+    
+    //sort (this->candidates.begin(),this->candidates.end());   
     cout << "Candidate set size: "<<this->candidates.size()<<endl;
-
-    vector<id> all_ids=vector<id>(cfg->dataset_size);
-    for (int i=0; i<cfg->dataset_size;i++){
-    	all_ids[i]=i;
-    }
-	this->never_sky=vector<id>(cfg->dataset_size);  
-  	std::vector<id>::iterator it4;
-  	it4=std::set_difference(all_ids.begin(), all_ids.end(), candidates.begin(), candidates.end(), this->never_sky.begin());                        
-  	this->never_sky.resize(it4-this->never_sky.begin());
   	cout << "never_sky set size: "<<this->never_sky.size()<<endl;
-
 }
 
 
-void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
+void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
 	
 	#pragma omp parallel for schedule(dynamic)
 	for(int i=0;i<preference_orders[0].size();i++){
@@ -143,15 +100,11 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map
 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				p[cfg->statDim_size+1]=0;
-				// p[0]=0;
-				// memcpy(p[0], dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				branch_dataset.push_back(p);
 			}else if (dataset[i][cfg->statDim_size+1]==worst_value){
 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				p[cfg->statDim_size+1]=1;
-				// p[0]=1;
-				// memcpy(p[0], dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				branch_dataset.push_back(p);
 			}
 		}
@@ -178,20 +131,20 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map
 	  	std::vector<id>::iterator it4;
 	  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
 	  	notSky.resize(it4-notSky.begin());
-
-	  	//*********************************
-	  	// store notSky
-
-	  	#pragma omp critical
-	  	{
-	  		sky_view[Order(best_value,worst_value)]=new order_tree;
+	  	for (auto id: notSky) {
+	  		notSkyline[id]=true;
 	  	}
-	  	sky_view[Order(best_value,worst_value)]->ids=notSky;
-	  	*storage=*storage+notSky.size();
+  		//////
+		//destroy Point pointers
+		for ( auto p : branch_dataset)
+		delete p;
+		//	
 	}
 }
 
-void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders, uint64_t *storage){
+
+
+void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders, bool* notSkyline){
 	cout << "dySky::compute_views" <<endl;
 
 	vector<Point> candidates_tuples;
@@ -207,13 +160,10 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 	}
 
 	if (cfg->dyDim_size==1){
-		compute_view_1d(cfg, candidates_tuples, this->sky_view, preference_orders, storage);
+		compute_view_1d(cfg, candidates_tuples, preference_orders, notSkyline);
 	}
 	else{ // case of multiple dimensions
 
-		for(int s=0;s<preference_orders[0].size();s++){
-			this->sky_view[Order(preference_orders[0][s].first,preference_orders[0][s].second)]=new order_tree;
-		}
 		int niveau=0;
 		#pragma omp parallel for schedule(dynamic)
 		for(int s=0;s<preference_orders[0].size();s++){
@@ -249,7 +199,7 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 					}
 				}
 			}
-			compute_view_recursively_md(cfg, niveau+1, branch_dataset, this->sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
+			compute_view_recursively_md(cfg, niveau+1, branch_dataset, preference_orders, notSkyline);
 			
 			/////
 			//destroy Point pointers
@@ -260,7 +210,7 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 	}
 }
 
-void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
+void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
 	
 	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
 	for(int s=0;s<preference_orders[niveau].size();s++){
@@ -300,10 +250,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 				}
 			}
 
-			if (sky_view.find(Order(best_value,worst_value))==sky_view.end()){
-				sky_view[Order(best_value,worst_value)]=new order_tree;;
-			}
-			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, sky_view[Order(best_value,worst_value)]->order_child, preference_orders, storage);
+			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, preference_orders, notSkyline);
 			/////
 			//destroy Point pointers
 			for ( auto p : branch_dataset)
@@ -366,17 +313,15 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 		  	std::vector<id>::iterator it4;
 		  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
 		  	notSky.resize(it4-notSky.begin());
-
+		  	for (auto id: notSky) {
+		  		notSkyline[id]=true;
+		  	}
 			/////
 			//destroy Point pointers
 			for ( auto p : branch_dataset)
 			delete p;
 			//	
 
-	  		sky_view[Order(best_value,worst_value)]=new order_tree;
-	  		sky_view[Order(best_value,worst_value)]->ids.swap(notSky);
-		  	
-		  	*storage=*storage+sky_view[Order(best_value,worst_value)]->ids.size();
 		}
 		
 	}	
@@ -385,53 +330,100 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 
 
 
-vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preference_cross){
+vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preference_orders){
 	cout << "dySky::compute_skyline" <<endl;
-	// cerr << "dySky::compute_skyline" <<endl;
-	// for (int i=0;i<preference_cross.size();i++){
-	// 	for (int j=0;j<preference_cross[i].size();j++){
-	// 		cout << preference_cross[i][j].first<< ":"<< preference_cross[i][j].second <<endl;
-	// 	}
-	// 	cout<<endl;
-	// }
 
-
-	bool* cSkyline=new bool[cfg->dataset_size];
-	for (int i=0;i<cfg->dataset_size;i++) cSkyline[i]=true;
-
-	for (int i=0;i<preference_cross.size();i++){ // loop on orders
-		order_tree *ot=sky_view[preference_cross[i][0]];
-		//cout << "niv: 0 " <<preference_cross[i][0].first<< ":"<< preference_cross[i][0].second <<endl;
-		int j=1;
-		while (j<cfg->dyDim_size){ // enter here when multi po dimension
-			ot=ot->order_child[preference_cross[i][j]];
-			//cout << "niv:"<<j <<" "<< preference_cross[i][j].first<< ":"<< preference_cross[i][j].second <<endl;
-			j++;
-		}
-		
-		for ( int id_tuple : ot->ids) cSkyline[id_tuple]=false;		
+	bool* notSkyline=new bool[cfg->dataset_size];
+	for(int i=0;i<cfg->dataset_size;++i){
+		notSkyline[i]=false;
 	}
-	// remove never_sky 
-	
-	for (int id_tuple : this->never_sky) cSkyline[id_tuple]=false;			
+
+	this->compute_views(cfg, preference_orders, notSkyline);
+
+	for (int id_tuple : this->never_sky) notSkyline[id_tuple]=true;			
 
 	// compute positive skyline
 
 	vector<id> skyline_result=vector<id>(cfg->dataset_size);	
 	int index=0;
-
 	for (int i=0; i<cfg->dataset_size; i++){
-		if (cSkyline[i]==true){
+		if (notSkyline[i]==false){ // means i is skyline
 			skyline_result[index]=i;
 			index++;
 		}
-		
 	}
-	delete[] cSkyline;
+	delete[] notSkyline;
 	skyline_result.resize(index);
 
 	return skyline_result;
 }
 
+// void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
+	
+// 	#pragma omp parallel for schedule(dynamic)
+// 	for(int i=0;i<preference_orders[0].size();i++){
+// 		int best_value=preference_orders[0][i].first;
+// 		int worst_value=preference_orders[0][i].second;
+// 		//cout << best_value << ":" << worst_value <<endl;
 
+		
+// 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 		// partitionner les donnees par rapport aux valeurs best_value, worst_value
+// 		vector<Point> dominating;
+// 		vector<Point> dominated;
+// 		for (int i=0; i<dataset.size(); i++){
+// 			if (dataset[i][cfg->statDim_size+1]==best_value){
+// 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+// 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+// 				p[cfg->statDim_size+1]=0;
+// 				dominating.push_back(p);
+// 			}else if (dataset[i][cfg->statDim_size+1]==worst_value){
+// 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+// 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+// 				p[cfg->statDim_size+1]=1;
+// 				dominated.push_back(p);
+// 			}
+// 		}
+
+
+// 		//*************************************
+// 		// calculer le skyline
+
+// 		vector<id> notSky;
+// 		find_dominated(cfg, dominating, dominated, notSky);
+
+// 	  	//*********************************
+// 	  	// store notSky
+
+// 	  	#pragma omp critical
+// 	  	{
+// 	  		sky_view[Order(best_value,worst_value)]=new order_tree;
+// 	  	}
+// 	  	sky_view[Order(best_value,worst_value)]->ids=notSky;
+// 	  	*storage=*storage+notSky.size();
+// 	}
+// }
+
+bool check_dominance(Config* cfg, Point tuple_dominated, Point tuple_dominating, int dim){
+	if (tuple_dominating[dim]>tuple_dominated[dim]){
+		return false;
+	}
+	if (dim==cfg->statDim_size+1){
+		return true;
+	}
+	return check_dominance(cfg, tuple_dominated, tuple_dominating, dim+1);
+}
+
+void dySky_v::find_dominated(Config* cfg, vector<Point> &dominating, vector<Point> &dominated, vector<id> &notSky){
+
+	for (auto tuple1: dominated){
+		for (auto tuple2: dominating){
+			if (check_dominance(cfg, tuple1, tuple2, 1)){
+				notSky.push_back(tuple1[0]);
+				break;
+			}
+		}
+	}
+
+}
 

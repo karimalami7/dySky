@@ -26,9 +26,12 @@ class Graph
 	void print_vertices();
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
+	void compute_transitive_reduction(Graph<T> G);
 	void greedyColoring(); 
 	bool is_subgraph(Graph<T> p); 
 	bool is_DAG(Order new_edge);
+	void aux_reachable(T value, set<T> &reachable_values);
+	void reachable(T value, set<T> &reachable_values);
 
 };
 
@@ -120,6 +123,38 @@ void Graph<T>::compute_transitive_closure(Graph<T> p){
 		unordered_set<int> vertices_dest;
 		recursive_add(p.out_edges,it->first,vertices_dest);
 		this->set_outedges(it->first,vertices_dest);
+	}
+}
+
+template <typename T>
+void Graph<T>::aux_reachable(T value, set<T> &reachable_values){
+	if (this->out_edges.find(value)!=this->out_edges.end()){
+		for (auto val: out_edges[value]){
+			reachable_values.insert(val);
+			aux_reachable(val, reachable_values);	
+		}
+	}
+}
+
+template <typename T>
+void Graph<T>::reachable(T value, set<T> &reachable_values){
+	for (auto e: out_edges[value]){
+		aux_reachable(e,reachable_values);
+	}
+}
+
+template <typename T>
+void Graph<T>::compute_transitive_reduction(Graph<T> G){
+
+	for (auto it=G.out_edges.begin();it!=G.out_edges.end();it++){
+		set<T> reachable_values;
+		reachable(it->first, reachable_values); 
+		for (auto it2=it->second.begin(); it2!=it->second.end(); it2++){
+			if (reachable.find(*it2)!=reachable.end()){
+				//delete it2
+				it->second.erase(it2);
+			}
+		}
 	}
 }
 
