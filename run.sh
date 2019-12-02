@@ -15,25 +15,27 @@
 # rm cout
 # rm cerr 
 
-for t in 96
+for t in 8
 do
-
-for dataset_size in 10000
-do
-	for statDim in 6
+	for dataset_size in 100000
 	do
-		for dyDim in 1
+		for statDim in 6
 		do
-			for value in 6
+			for dyDim in 3
 			do
-				echo "-n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 2"
-				OMP_NUM_THREADS=$t ./exec_dySky -n $dataset_size -s $statDim -k 1000 -d $dyDim -m $value -q 1 #> cout 2> cerr
-				# mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value
-				# mv cerr ./logs/cerr-$dataset_size-$statDim-$dyDim-$value
+				for value in 10
+				do
+					for queries in 1
+					do
+						echo "-n $dataset_size -s $statDim -k 1000 -d $dyDim -m $value -q $queries"
+						OMP_NUM_THREADS=$t ./exec_dySky -n $dataset_size -s $statDim -k 1000 -d $dyDim -m $value -q $queries > cout 2> cerr
+						mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value
+						mv cerr ./logs/cerr-$dataset_size-$statDim-$dyDim-$value
+					done
+				done
 			done
 		done
 	done
-done
 done
 
 

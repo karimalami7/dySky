@@ -19,6 +19,7 @@ public:
 	void graph_to_orderPairs(Config* cfg);
 	void cross_orders_over_dimensions(Config* cfg);
 	void recur_cross(Config* cfg, vector<Order> v, int niv);
+	void print_query_caracteristics(Config* cfg);
 };
 Query::Query(){
 	
@@ -45,6 +46,7 @@ Query::Query(Config* cfg){
 	}
 	this->graph_to_orderPairs(cfg);
 	this->cross_orders_over_dimensions(cfg);
+	this->print_query_caracteristics(cfg);
 
 }
 
@@ -73,13 +75,6 @@ void Query::graph_to_orderPairs(Config* cfg){
 		}	
 	}
 
-	// print number of sequences
-	int num_seq=1;
-	for (int i=0; i<cfg->dyDim_size; i++){
-		cout << "number of orders: "<< this->preference_orders[i].size()<<endl;
-		num_seq*=this->preference_orders[i].size();
-	}
-	cerr << "number of sequences of this query: "<< num_seq<<endl;
 
 }
 
@@ -117,3 +112,20 @@ void Query::cross_orders_over_dimensions(Config* cfg){
 
 }
 
+void Query::print_query_caracteristics(Config* cfg){
+	// print number of sequences
+	int num_seq=1;
+	for (int i=0; i<cfg->dyDim_size; i++){
+		cerr << "number of orders: "<< this->preference_orders[i].size()<<endl;
+		num_seq*=this->preference_orders[i].size();
+	}
+	cerr << "number of sequences of this query: "<< num_seq<<endl;
+
+	// print number of sequences
+	int num_paths=1;
+	for (int i=0; i<cfg->dyDim_size; i++){
+		cerr << "number of paths: "<< this->preference_chains[i].size()<<endl;
+		num_paths*=this->preference_chains[i].size();
+	}
+	cerr << "number of paths of this query: "<< num_paths<<endl;
+}

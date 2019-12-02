@@ -45,19 +45,24 @@ void Preference::generate_preference(Config* cfg){
 
 	//random preference setting
 
-	int iteration=0;
-	int max_iteration=rand()%(10*cfg->dyDim_val);
+	double density=0;
+	int max_number_edges=(cfg->dyDim_val*(cfg->dyDim_val-1))/2;
 
-	while (iteration < max_iteration) {
+	int iteration=0;
+	//int max_iteration=rand()%(10*cfg->dyDim_val);
+	int number_edges;
+	while (density < 0.8) {
 		int v1=rand()%cfg->dyDim_val;
 		int v2=rand()%cfg->dyDim_val;
 		while (v1==v2){
 			v2=rand()%cfg->dyDim_val;
 		}  
-		if(this->is_DAG(Order(v1,v2))){
+		if(this->is_DAG(Order(v1,v2), &number_edges)){
 			this->add_outedge(v1,v2);
+			density=(float)number_edges/(float)max_number_edges;
+			cout << "density" << density <<endl;
 		}
-		iteration++;
+		
 	}
 
 	//manual preference setting
