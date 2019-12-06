@@ -90,8 +90,8 @@ int main(int argc, char** argv) {
     uint64_t storage;
     bool selectedMethod[]={
     	false, //dysky_m
-    	false, //dysky_v
-    	false, //cps
+    	true, //dysky_v
+    	true, //cps
     	false, //tos
     	false, //arg
     	false, //dysky_h
@@ -126,6 +126,12 @@ int main(int argc, char** argv) {
 	}
 	vector<Query> workload2(1000);
 	//********************************
+
+	//**********************************
+	// recursive parallelization
+	omp_set_nested(cfg->dyDim_size); 
+	// 
+
 	cfg->to_dataset=dysky_m.to_dataset;
 	cfg->po_dataset=dysky_m.po_dataset;
 	//
