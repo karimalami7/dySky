@@ -96,12 +96,12 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector
 		// partitionner les donnees par rapport aux valeurs best_value, worst_value
 		vector<Point> branch_dataset;
 		for (int i=0; i<dataset.size(); i++){
-			if (dataset[i][cfg->statDim_size+1]==best_value){
+			if (dataset[i][cfg->statDim_size+1]==best_value && !notSkyline[dataset[i][0]]){
 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				p[cfg->statDim_size+1]=0;
 				branch_dataset.push_back(p);
-			}else if (dataset[i][cfg->statDim_size+1]==worst_value){
+			}else if (dataset[i][cfg->statDim_size+1]==worst_value && !notSkyline[dataset[i][0]]){
 				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 				p[cfg->statDim_size+1]=1;
@@ -177,12 +177,12 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 				// partitionner les donnees par rapport à cette dimension
 				for (int i=0; i<candidates_tuples.size(); i++){
-					if (candidates_tuples[i][cfg->statDim_size+1]==best_value){
+					if (candidates_tuples[i][cfg->statDim_size+1]==best_value && !notSkyline[candidates_tuples[i][0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						p[1+cfg->statDim_size+niveau]=0;
 						branch_dataset.push_back(p);
-					}else if (candidates_tuples[i][cfg->statDim_size+1]==worst_value){
+					}else if (candidates_tuples[i][cfg->statDim_size+1]==worst_value && !notSkyline[candidates_tuples[i][0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						p[1+cfg->statDim_size+niveau]=1;
@@ -192,7 +192,7 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 			}	
 			else{
 				for (auto tuple : candidates_tuples){
-					if(tuple[1+cfg->statDim_size+niveau]==best_value){
+					if(tuple[1+cfg->statDim_size+niveau]==best_value && !notSkyline[tuple[0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						branch_dataset.push_back(p);
@@ -212,7 +212,7 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 
 void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
 	
-	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
+	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<94) 
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;
@@ -228,7 +228,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 				// partition data wrt worst and best value in dimension niveau
 				for (int i=0; i<dataset.size(); i++){
-					if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
+					if (dataset[i][cfg->statDim_size+1+niveau]==best_value && !notSkyline[dataset[i][0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						p[cfg->statDim_size+1+niveau]=0;
@@ -242,7 +242,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 				}
 			}else{
 				for (auto tuple : dataset){
-					if(tuple[1+cfg->statDim_size+niveau]==best_value){
+					if(tuple[1+cfg->statDim_size+niveau]==best_value && !notSkyline[tuple[0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						branch_dataset.push_back(p);

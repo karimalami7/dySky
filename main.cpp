@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 	int c = 0;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "n:s:k:d:m:q:")) != -1) {
+	while ((c = getopt(argc, argv, "n:s:k:d:m:q:r:")) != -1) {
 		switch (c) {
 		case 'n':
 			cfg->dataset_size = atoi(optarg);
@@ -72,6 +72,9 @@ int main(int argc, char** argv) {
 			break;
 		case 'q':
 			cfg->workload_size = atoi(optarg);
+			break;
+		case 'r':
+			cfg->distrib = optarg;
 			break;
 		default:
 			if (isprint(optopt))
@@ -231,7 +234,7 @@ int main(int argc, char** argv) {
   	// skyline query answering
   	//
 
-	string const nomFichier1("logs/performance-"+to_string(cfg->dataset_size)+"-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dyDim_size)+"-"+to_string(cfg->dyDim_val));
+	string const nomFichier1("logs/performance-"+to_string(cfg->dataset_size)+"-"+cfg->distrib+"-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dyDim_size)+"-"+to_string(cfg->dyDim_val));
     ofstream monFlux1(nomFichier1.c_str());
 
   	// cerr << "---QUERY ANSWERING---"<<endl<<endl;
@@ -250,11 +253,11 @@ int main(int argc, char** argv) {
 
 	if (selectedMethod[0]) monFlux1 << "dysky_m"<< " : ";
 	if (selectedMethod[1]) monFlux1 << "dysky_v"<< " : ";
+	if (selectedMethod[5]) monFlux1 << "dysky_h"<< " : ";
+	if (selectedMethod[6]) monFlux1 << "dysky_v_chains"<< " : ";
 	if (selectedMethod[2]) monFlux1 << "cps"<< " : ";
 	if (selectedMethod[3]) monFlux1 << "tos"<< " : ";
 	if (selectedMethod[4]) monFlux1 << "arg"<< " : ";
-	if (selectedMethod[5]) monFlux1 << "dysky_h"<< " : ";
-	if (selectedMethod[6]) monFlux1 << "dysky_v_chains"<< " : ";
 
 	map<string, double> processing_time;
 	processing_time["dysky_m"]=0;
@@ -441,11 +444,11 @@ int main(int argc, char** argv) {
 
 	if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]/cfg->workload_size<< " : ";
 	if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]/cfg->workload_size<< " : ";
+	if (selectedMethod[5]) monFlux1 << processing_time["dysky_h"]/cfg->workload_size<< " : ";
+	if (selectedMethod[6]) monFlux1 << processing_time["dySky_v_chains"]/cfg->workload_size<< " : ";
 	if (selectedMethod[2]) monFlux1 << processing_time["cps"]/cfg->workload_size<< " : ";
 	if (selectedMethod[3]) monFlux1 << processing_time["tos"]/cfg->workload_size<< " : ";
 	if (selectedMethod[4]) monFlux1 << processing_time["arg"]/cfg->workload_size<< " : ";
-	if (selectedMethod[5]) monFlux1 << processing_time["dysky_h"]/cfg->workload_size<< " : ";
-	if (selectedMethod[6]) monFlux1 << processing_time["dySky_v_chains"]/cfg->workload_size<< " : ";
 
 	monFlux1 << endl;
 }

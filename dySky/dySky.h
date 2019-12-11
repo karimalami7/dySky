@@ -45,7 +45,7 @@ dySky::dySky(Config *cfg){
 }
 
 void dySky::generate_to_data(Config* cfg){
-	loadData("ANTI","",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
+	loadData(cfg->distrib,"",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
 
 	
 } 
@@ -262,7 +262,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 
 void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
 	
-	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
+	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<95 && niveau==1) 
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;

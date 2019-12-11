@@ -199,7 +199,7 @@ void dySky_v_chains::compute_views(Config* cfg, vector<vector<chain>> preference
 
 void dySky_v_chains::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<chain>> preference_chains, bool* notSkyline){
 	
-	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
+	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<94) 
 	for(int s=0;s<preference_chains[niveau].size();s++){
 		auto chain=preference_chains[niveau][s];
 		// int best_value=preference_orders[niveau][s].first;
