@@ -399,6 +399,7 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 	bool* cSkyline=new bool[cfg->dataset_size];
 	for (int i=0;i<cfg->dataset_size;i++) cSkyline[i]=true;
 
+	#pragma omp parallel for
 	for (int i=0;i<preference_cross.size();i++){ // loop on orders
 		order_tree *ot=sky_view[preference_cross[i][0]];
 		//cout << "niv: 0 " <<preference_cross[i][0].first<< ":"<< preference_cross[i][0].second <<endl;

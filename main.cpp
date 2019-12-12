@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
 		// dySky_m: skyline query answering by dySky using materialized views
 		if(selectedMethod[0]==true){
 			cerr << "=====dySky: materialized views=====" <<endl;
-			//cout << "=====dySky: materialized views=====" <<endl;
+			cout << "=====dySky: materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			results["dysky_m"]=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
 			processing_time["dysky_m"]=processing_time["dysky_m"]+(omp_get_wtime()-start_time);
@@ -305,6 +305,25 @@ int main(int argc, char** argv) {
 
 		cerr <<endl;
 
+		// dySky_v: skyline query answering by dySky using virtual views
+		if(selectedMethod[6]==true){
+			cerr << "=====dySky: on the fly with chains=====" <<endl;
+			cout << "=====dySky: on the fly with chains=====" <<endl;
+			dySky_v_chains dysky_v_chains(cfg);
+			dysky_v_chains.to_dataset=dysky_m.to_dataset;
+			dysky_v_chains.po_dataset=dysky_m.po_dataset;
+			start_time=omp_get_wtime();
+			start_time2=omp_get_wtime();			
+			dysky_v_chains.compute_candidates(cfg);
+			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
+			start_time2=omp_get_wtime();
+			results["dySky_v_chains"]=dysky_v_chains.compute_skyline(cfg, workload[q].preference_chains).size();
+			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
+			processing_time["dySky_v_chains"]=processing_time["dySky_v_chains"]+(omp_get_wtime()-start_time);
+			cerr << "--> Result size: "<< results["dySky_v_chains"]<<endl;
+			cerr << "--> Time: "<< processing_time["dySky_v_chains"] << endl;
+		}
+		
 		// dySky_v: skyline query answering by dySky using virtual views
 		if(selectedMethod[1]==true){
 			cerr << "=====dySky: on the fly with orders=====" <<endl;
@@ -325,26 +344,6 @@ int main(int argc, char** argv) {
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_v"] << endl;
 		}
-
-		// dySky_v: skyline query answering by dySky using virtual views
-		if(selectedMethod[6]==true){
-			cerr << "=====dySky: on the fly with chains=====" <<endl;
-			cout << "=====dySky: on the fly with chains=====" <<endl;
-			dySky_v_chains dysky_v(cfg);
-			dysky_v.to_dataset=dysky_m.to_dataset;
-			dysky_v.po_dataset=dysky_m.po_dataset;
-			start_time=omp_get_wtime();
-			start_time2=omp_get_wtime();			
-			dysky_v.compute_candidates(cfg);
-			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
-			start_time2=omp_get_wtime();
-			results["dySky_v_chains"]=dysky_v.compute_skyline(cfg, workload[q].preference_chains).size();
-			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
-			processing_time["dySky_v_chains"]=processing_time["dySky_v_chains"]+(omp_get_wtime()-start_time);
-			cerr << "--> Result size: "<< results["dySky_v_chains"]<<endl;
-			cerr << "--> Time: "<< processing_time["dySky_v_chains"] << endl;
-		}
-		
 
 	  	// skyline query answering by CPS
 	  	if(selectedMethod[2]==true){

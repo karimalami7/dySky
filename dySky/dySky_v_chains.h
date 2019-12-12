@@ -97,13 +97,15 @@ void dySky_v_chains::compute_view_1d(Config* cfg, vector<Point> &dataset, vector
 		// partitionner les donnees par rapport aux valeurs best_value, worst_value
 		vector<Point> branch_dataset;
 		for (int j=0; j<dataset.size(); ++j){
-			for (int rank=0; rank<chain.size(); rank++ ){
-				if (dataset[j][cfg->statDim_size+1]==chain[rank]){
-					Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-					memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-					p[cfg->statDim_size+1]=rank;
-					branch_dataset.push_back(p);
-					break;
+			if (!notSkyline[dataset[j][0]]){
+				for (int rank=0; rank<chain.size(); rank++ ){
+					if (dataset[j][cfg->statDim_size+1]==chain[rank]){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1]=rank;
+						branch_dataset.push_back(p);
+						break;
+					}
 				}
 			}
 		}
@@ -175,13 +177,15 @@ void dySky_v_chains::compute_views(Config* cfg, vector<vector<chain>> preference
 			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
 			for (int j=0; j<candidates_tuples.size(); ++j){
-				for (int rank=0; rank<chain.size(); rank++ ){
-					if (candidates_tuples[j][cfg->statDim_size+1]==chain[rank]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, candidates_tuples[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1]=rank;
-						branch_dataset.push_back(p);
-						break;
+				if (!notSkyline[candidates_tuples[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (candidates_tuples[j][cfg->statDim_size+1]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, candidates_tuples[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}
@@ -215,13 +219,15 @@ void dySky_v_chains::compute_view_recursively_md(Config* cfg, int niveau, vector
 			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
 			for (int j=0; j<dataset.size(); ++j){
-				for (int rank=0; rank<chain.size(); rank++ ){
-					if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=rank;
-						branch_dataset.push_back(p);
-						break;
+				if (!notSkyline[dataset[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1+niveau]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}
@@ -241,13 +247,15 @@ void dySky_v_chains::compute_view_recursively_md(Config* cfg, int niveau, vector
 			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
 			for (int j=0; j<dataset.size(); ++j){
-				for (int rank=0; rank<chain.size(); rank++ ){
-					if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=rank;
-						branch_dataset.push_back(p);
-						break;
+				if (!notSkyline[dataset[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1+niveau]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}

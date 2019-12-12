@@ -51,7 +51,7 @@ void Preference::generate_preference(Config* cfg){
 	int iteration=0;
 	//int max_iteration=rand()%(10*cfg->dyDim_val);
 	int number_edges;
-	while (density < 0.9) {
+	while (density < 0.5) {
 		int v1=rand()%cfg->dyDim_val;
 		int v2=rand()%cfg->dyDim_val;
 		while (v1==v2){

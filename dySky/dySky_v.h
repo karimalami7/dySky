@@ -212,7 +212,7 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 
 void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
 	
-	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<94) 
+	//#pragma omp parallel for schedule(dynamic) if (niveau==1) 
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;
@@ -262,18 +262,16 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 		if (niveau==cfg->dyDim_size-1){
 
 			vector<Point> branch_dataset;
-
 			if (best_value!=worst_value){
-
 				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 				// partitionner les donnees par rapport à cette dimension
 				for (int i=0; i<dataset.size(); i++){
-					if (dataset[i][cfg->statDim_size+1+niveau]==best_value){
+					if (dataset[i][cfg->statDim_size+1+niveau]==best_value && !notSkyline[dataset[i][0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						p[cfg->statDim_size+1+niveau]=0;
 						branch_dataset.push_back(p);
-					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
+					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value && !notSkyline[dataset[i][0]]){
 						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
 						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
 						p[cfg->statDim_size+1+niveau]=1;
