@@ -84,12 +84,12 @@ void PushStack(stack<SNode>& Stack, SNode& SkyNode);
 void ClearSkyTree(SNode& SkyTree);
 
 
-void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline);
+void ExecuteBSkyTree(Config *cfg, vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline);
 
 
 void ExecuteBSkyTree_bis(vector<int>& AttList, vector<Point>& PointList, bool* notSkyline);
 
 
-vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList);
+vector<int> subspaceSkylineSize_TREE(Config *cfg, vector<int>& AttList, vector<Point>& PointList);
 
 #endif // BSKYTREE_H_INCLUDED

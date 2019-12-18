@@ -117,7 +117,7 @@ void dySky_h::hybrid_compute_view_recursively_md(Config* cfg, int niveau, vector
 			int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 			vector<Space> full_Space;
 			listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-			sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+			sky=subspaceSkylineSize_TREE(cfg, full_Space, branch_dataset);
 		}
 
 		sort(sky.begin(),sky.end());
@@ -183,7 +183,7 @@ void dySky_h::hybrid_compute_view_1d(Config* cfg, vector<Point> &dataset, Order 
 	int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 	vector<Space> full_Space;
 	listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-	vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+	vector<id> sky=subspaceSkylineSize_TREE(cfg, full_Space, branch_dataset);
 
   	//******************************************
   	// sort ids

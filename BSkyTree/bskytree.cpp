@@ -371,15 +371,15 @@ void ClearSkyTree(SNode& SkyTree)
 }
 
 
-void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline)
+void ExecuteBSkyTree(Config *cfg, vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline)
 {
 	SNode SkyTree;
 	SkyTree.nLatticeID = 0;
 
 	vector<Point> CPointList = PointList;
 
-	bool* notSkyline=new bool[100000];
-	for(int i=0;i<100000;++i){
+	bool* notSkyline=new bool[cfg->dataset_size];
+	for(int i=0;i<cfg->dataset_size;++i){
 		notSkyline[i]=false;
 	}
 	ComputeSubBSkyTree(AttList, CPointList, SkyTree, notSkyline);
@@ -400,9 +400,9 @@ void ExecuteBSkyTree_bis(vector<int>& AttList, vector<Point>& PointList, bool* n
 
 }
 
-vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList){
+vector<int> subspaceSkylineSize_TREE(Config *cfg, vector<int>& AttList, vector<Point>& PointList){
     vector<int> skyline;
-    ExecuteBSkyTree(AttList, PointList, skyline);
+    ExecuteBSkyTree(cfg, AttList, PointList, skyline);
     return skyline;
 }
 

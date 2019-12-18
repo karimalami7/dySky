@@ -65,7 +65,7 @@ int dySky_v_chains::compute_candidates(Config* cfg){
 	#pragma omp parallel for
     for (int i=0; i<partitions_vec.size(); ++i){
     	vector<id> Skyline;
-    	Skyline=subspaceSkylineSize_TREE(full_Space, partitions_vec[i]);
+    	Skyline=subspaceSkylineSize_TREE(cfg, full_Space, partitions_vec[i]);
     	for (auto elm: Skyline) candidates_bool[elm]=true;
     }
 	
