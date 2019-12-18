@@ -114,26 +114,27 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector
 		int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 		vector<Space> full_Space;
 		listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-		vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+		//vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+		ExecuteBSkyTree_bis(full_Space, branch_dataset, notSkyline);
 
 	  	//******************************************
-	  	// sort ids
-	  	std::sort (sky.begin(),sky.end());
+	  	//sort ids
+	 //  	std::sort (sky.begin(),sky.end());
 
-		//******************************************
-		// compute dominated points
-		vector<id> branch_dataset_ids(branch_dataset.size());
-		for (int b=0;b<branch_dataset.size();b++){
-			branch_dataset_ids[b]=branch_dataset[b][0];
-		}
-		//sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
-		std::vector<id> notSky(branch_dataset_ids.size());   
-	  	std::vector<id>::iterator it4;
-	  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
-	  	notSky.resize(it4-notSky.begin());
-	  	for (auto id: notSky) {
-	  		notSkyline[id]=true;
-	  	}
+		// //******************************************
+		// // compute dominated points
+		// vector<id> branch_dataset_ids(branch_dataset.size());
+		// for (int b=0;b<branch_dataset.size();b++){
+		// 	branch_dataset_ids[b]=branch_dataset[b][0];
+		// }
+		// //sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
+		// std::vector<id> notSky(branch_dataset_ids.size());   
+	 //  	std::vector<id>::iterator it4;
+	 //  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
+	 //  	notSky.resize(it4-notSky.begin());
+	 //  	for (auto id: notSky) {
+	 //  		notSkyline[id]=true;
+	 //  	}
   		//////
 		//destroy Point pointers
 		for ( auto p : branch_dataset)
@@ -290,30 +291,31 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 
 			//*************************************
 			// calculer le skyline
-			vector<id> sky;
+			// vector<id> sky;
 			if(branch_dataset.size()>0){
 				int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 				vector<Space> full_Space;
 				listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-				sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+				//sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+				ExecuteBSkyTree_bis(full_Space, branch_dataset, notSkyline);
 			}
 
-			sort(sky.begin(),sky.end());
+			// sort(sky.begin(),sky.end());
 			
-			//MINUS : get non skyline points in branch_dataset
-			vector<id> branch_dataset_ids(branch_dataset.size());
-			for (int b=0;b<branch_dataset.size();b++){
-				branch_dataset_ids[b]=branch_dataset[b][0];
-			}
-			sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
+			// //MINUS : get non skyline points in branch_dataset
+			// vector<id> branch_dataset_ids(branch_dataset.size());
+			// for (int b=0;b<branch_dataset.size();b++){
+			// 	branch_dataset_ids[b]=branch_dataset[b][0];
+			// }
+			// sort(branch_dataset_ids.begin(),branch_dataset_ids.end());
 
-			std::vector<id> notSky(branch_dataset_ids.size());   
-		  	std::vector<id>::iterator it4;
-		  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
-		  	notSky.resize(it4-notSky.begin());
-		  	for (auto id: notSky) {
-		  		notSkyline[id]=true;
-		  	}
+			// std::vector<id> notSky(branch_dataset_ids.size());   
+		 //  	std::vector<id>::iterator it4;
+		 //  	it4=std::set_difference(branch_dataset_ids.begin(), branch_dataset_ids.end(), sky.begin(), sky.end(), notSky.begin());                        
+		 //  	notSky.resize(it4-notSky.begin());
+		 //  	for (auto id: notSky) {
+		 //  		notSkyline[id]=true;
+		 //  	}
 			/////
 			//destroy Point pointers
 			for ( auto p : branch_dataset)

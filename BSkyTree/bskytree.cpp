@@ -77,7 +77,7 @@ bool EvaluatePoint(vector<int>& AttList, int nCPos, vector<Point>& PointList)
 	return bSkyline;
 }
 
-void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList)
+void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList, bool* notSkyline)
 {
 	int nHead = 0, nTail = (int)PointList.size() - 1, nCPos = 1;
 	int nCurAtt, nNumAtt = (int)AttList.size();
@@ -105,12 +105,14 @@ void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList)
 
 		if (bDominate && !bDominated)
 		{
+			notSkyline[PointList[nCPos][0]]=true;
 			PointList[nCPos] = PointList[nTail];
 			PointList.pop_back();
 			nTail--;
 		}
 		else if (!bDominate && bDominated)
 		{
+			notSkyline[PointList[nHead][0]]=true;
 			PointList[nHead] = PointList[nCPos];
 			PointList[nCPos] = PointList[nTail];
 			PointList.pop_back();
@@ -137,6 +139,7 @@ void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList)
 				}
 				else
 				{
+					notSkyline[PointList[nCPos][0]]=true;
 					PointList[nCPos] = PointList[nTail];
 					PointList.pop_back();
 					nTail--;
@@ -148,7 +151,7 @@ void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList)
 	}
 }
 
-void MapPointToRegion(vector<int>& AttList, vector<Point>& PointList, map<int, vector<Point> >& PointMap, SNode& SkyTree)
+void MapPointToRegion(vector<int>& AttList, vector<Point>& PointList, map<int, vector<Point> >& PointMap, SNode& SkyTree, bool* notSkyline)
 {
 	int nCurAtt, nNumAtt = (int)AttList.size();
 	int nNumPnt = (int)PointList.size();
@@ -189,6 +192,9 @@ void MapPointToRegion(vector<int>& AttList, vector<Point>& PointList, map<int, v
 		}
 		else if (nEqlLattice == 0)
 			SkyTree.NodePointList.push_back(PointList[nPnt]);
+		else {
+			notSkyline[PointList[nPnt][0]]=true;
+		}
 	}
 }
 
@@ -243,7 +249,7 @@ bool FilterPoint(Point& CPoint, vector<int>& AttList, SNode& SkyNode)
 
 
 
-void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList, SNode& SkyTree)
+void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList, SNode& SkyTree, bool* notSkyline)
 {
 	int nCLattice;//, nNumAtt = (int)AttList.size();
 	int nNumPnt, nNumChild = SkyTree.nNumChild;
@@ -260,6 +266,7 @@ void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList,
 				{
 					if (!FilterPoint(PointList[nPnt], AttList, SkyTree.ChildNode[nChild]))
 					{
+						notSkyline[PointList[nPnt][0]]=true;
 						PointList[nPnt] = PointList[nNumPnt-1];
 						PointList.pop_back();
 
@@ -276,14 +283,16 @@ void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList,
 	}
 }
 
-void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& SkyTree)
+void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& SkyTree, bool* notSkyline)
 {
 	int nLatticeID, nNumChild = 0;
 	vector<Point> CPointList;
 	map<int, vector<Point> > PointMap;
 
-	SelectPivotPoint(AttList, PointList);											// Pivot selection
-	MapPointToRegion(AttList, PointList, PointMap, SkyTree);		// Map Points to binary vectors representing subregions.
+	//cout << "Dataset size before SelectPivotPoint: "<<PointList.size()<<endl;
+	SelectPivotPoint(AttList, PointList, notSkyline);											// Pivot selection
+	//cout << "Dataset size after SelectPivotPoint: "<<PointList.size()<<endl;
+	MapPointToRegion(AttList, PointList, PointMap, SkyTree, notSkyline);		// Map Points to binary vectors representing subregions.
 
 	if (!PointMap.empty())
 		SkyTree.ChildNode = new SNode[PointMap.size()];
@@ -296,7 +305,7 @@ void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& S
 		if (nNumChild > 0)
 		{
 			SkyTree.nNumChild = nNumChild;
-			PartialDominance(AttList, nLatticeID, CPointList, SkyTree);			// Partial dominance check
+			PartialDominance(AttList, nLatticeID, CPointList, SkyTree, notSkyline);			// Partial dominance check
 		}
 
 		if (CPointList.size() == 1)
@@ -308,7 +317,7 @@ void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& S
 		else if (CPointList.size() > 1)
 		{
 			SkyTree.ChildNode[nNumChild].nLatticeID = nLatticeID;
-			ComputeSubBSkyTree(AttList, CPointList, SkyTree.ChildNode[nNumChild++]);	// Recursive call.
+			ComputeSubBSkyTree(AttList, CPointList, SkyTree.ChildNode[nNumChild++], notSkyline);	// Recursive call.
 		}
 	}
 
@@ -369,9 +378,26 @@ void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>
 
 	vector<Point> CPointList = PointList;
 
-	ComputeSubBSkyTree(AttList, CPointList, SkyTree);
+	bool* notSkyline=new bool[100000];
+	for(int i=0;i<100000;++i){
+		notSkyline[i]=false;
+	}
+	ComputeSubBSkyTree(AttList, CPointList, SkyTree, notSkyline);
 	InsertSkyline(skyline, SkyTree);
 	ClearSkyTree(SkyTree);
+	
+}
+
+void ExecuteBSkyTree_bis(vector<int>& AttList, vector<Point>& PointList, bool* notSkyline)
+{
+	SNode SkyTree;
+	SkyTree.nLatticeID = 0;
+
+	vector<Point> CPointList = PointList;
+	ComputeSubBSkyTree(AttList, CPointList, SkyTree, notSkyline);
+	//InsertSkyline(skyline, SkyTree);
+	ClearSkyTree(SkyTree);
+
 }
 
 vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList){
