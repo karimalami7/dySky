@@ -17,7 +17,7 @@
 #include <omp.h>
 using namespace std;
 
-class dySky_v {
+class dySky_v_chains {
 	public:
 	vector<Point> to_dataset;
 	vector<vector<int>> po_dataset;
@@ -25,23 +25,23 @@ class dySky_v {
 	vector<id> never_sky;
 	vector<id> candidates;
 
-	dySky_v(Config *cfg);
+	dySky_v_chains(Config *cfg);
 
 	int compute_candidates(Config* cfg);
-	void compute_views(Config* cfg, vector<vector<Order>> preference_orders, bool* notSkyline);
-	void compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline);
-	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline);
-	vector<id> compute_skyline(Config* cfg, vector<vector<Order>> preference_orders);
+	void compute_views(Config* cfg, vector<vector<chain>> preference_chains, bool* notSkyline);
+	void compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<chain>> preference_chains, bool* notSkyline);
+	void compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<chain>> preference_chains, bool* notSkyline);
+	vector<id> compute_skyline(Config* cfg, vector<vector<chain>> preference_chains);
 	void find_dominated(Config* cfg, vector<Point> &dominating, vector<Point> &dominated, vector<id> &notSky);
-
+	bool check_dominance(Config* cfg, Point tuple_dominated, Point tuple_dominating, int dim);
 };
 
-dySky_v::dySky_v(Config *cfg){
+dySky_v_chains::dySky_v_chains(Config *cfg){
 	this->po_dataset=vector<vector<int>>(cfg->dataset_size);
 }
 
 
-int dySky_v::compute_candidates(Config* cfg){
+int dySky_v_chains::compute_candidates(Config* cfg){
 	cout << "dySky::compute_candidates"<<endl;
 
 	// cluster dataset depending on the value in the po dimenion
@@ -83,29 +83,30 @@ int dySky_v::compute_candidates(Config* cfg){
 }
 
 
-void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
+void dySky_v_chains::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector<chain>> preference_chains, bool* notSkyline){
 	
 	#pragma omp parallel for schedule(dynamic)
-	for(int i=0;i<preference_orders[0].size();i++){
-		int best_value=preference_orders[0][i].first;
-		int worst_value=preference_orders[0][i].second;
+	for(int i=0; i<preference_chains[0].size(); ++i){
+		auto chain=preference_chains[0][i];
+		// int best_value=preference_orders[0][i].first;
+		// int worst_value=preference_orders[0][i].second;
 		//cout << best_value << ":" << worst_value <<endl;
 
 		
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// partitionner les donnees par rapport aux valeurs best_value, worst_value
 		vector<Point> branch_dataset;
-		for (int i=0; i<dataset.size(); i++){
-			if (dataset[i][cfg->statDim_size+1]==best_value && !notSkyline[dataset[i][0]]){
-				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-				p[cfg->statDim_size+1]=0;
-				branch_dataset.push_back(p);
-			}else if (dataset[i][cfg->statDim_size+1]==worst_value && !notSkyline[dataset[i][0]]){
-				Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-				memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-				p[cfg->statDim_size+1]=1;
-				branch_dataset.push_back(p);
+		for (int j=0; j<dataset.size(); ++j){
+			if (!notSkyline[dataset[j][0]]){
+				for (int rank=0; rank<chain.size(); rank++ ){
+					if (dataset[j][cfg->statDim_size+1]==chain[rank]){
+						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+						memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+						p[cfg->statDim_size+1]=rank;
+						branch_dataset.push_back(p);
+						break;
+					}
+				}
 			}
 		}
 
@@ -114,11 +115,11 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector
 		int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 		vector<Space> full_Space;
 		listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-		//vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
-		ExecuteBSkyTree_bis(full_Space, branch_dataset, notSkyline);
 
-	  	//******************************************
-	  	//sort ids
+		// vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+
+	 //  	//******************************************
+	 //  	// sort ids
 	 //  	std::sort (sky.begin(),sky.end());
 
 		// //******************************************
@@ -135,6 +136,8 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector
 	 //  	for (auto id: notSky) {
 	 //  		notSkyline[id]=true;
 	 //  	}
+
+	  	ExecuteBSkyTree_bis(full_Space, branch_dataset, notSkyline);
   		//////
 		//destroy Point pointers
 		for ( auto p : branch_dataset)
@@ -145,7 +148,7 @@ void dySky_v::compute_view_1d(Config* cfg, vector<Point> &dataset, vector<vector
 
 
 
-void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders, bool* notSkyline){
+void dySky_v_chains::compute_views(Config* cfg, vector<vector<chain>> preference_chains, bool* notSkyline){
 	cout << "dySky::compute_views" <<endl;
 
 	vector<Point> candidates_tuples;
@@ -161,46 +164,36 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 	}
 
 	if (cfg->dyDim_size==1){
-		compute_view_1d(cfg, candidates_tuples, preference_orders, notSkyline);
+		compute_view_1d(cfg, candidates_tuples, preference_chains, notSkyline);
 	}
 	else{ // case of multiple dimensions
 
 		int niveau=0;
 		#pragma omp parallel for schedule(dynamic)
-		for(int s=0;s<preference_orders[0].size();s++){
-			int best_value=preference_orders[0][s].first;
-			int worst_value=preference_orders[0][s].second;
+		for(int s=0;s<preference_chains[0].size();s++){
+			auto chain=preference_chains[0][s];
+			// int best_value=preference_orders[0][s].first;
+			// int worst_value=preference_orders[0][s].second;
 			//cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
 			
+			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
-
-			if (best_value!=worst_value){
-				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-				// partitionner les donnees par rapport à cette dimension
-				for (int i=0; i<candidates_tuples.size(); i++){
-					if (candidates_tuples[i][cfg->statDim_size+1]==best_value && !notSkyline[candidates_tuples[i][0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[1+cfg->statDim_size+niveau]=0;
-						branch_dataset.push_back(p);
-					}else if (candidates_tuples[i][cfg->statDim_size+1]==worst_value && !notSkyline[candidates_tuples[i][0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, candidates_tuples[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[1+cfg->statDim_size+niveau]=1;
-						branch_dataset.push_back(p);
-					}
-				}
-			}	
-			else{
-				for (auto tuple : candidates_tuples){
-					if(tuple[1+cfg->statDim_size+niveau]==best_value && !notSkyline[tuple[0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						branch_dataset.push_back(p);
+			for (int j=0; j<candidates_tuples.size(); ++j){
+				if (!notSkyline[candidates_tuples[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (candidates_tuples[j][cfg->statDim_size+1]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, candidates_tuples[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}
-			compute_view_recursively_md(cfg, niveau+1, branch_dataset, preference_orders, notSkyline);
+
+			compute_view_recursively_md(cfg, niveau+1, branch_dataset, preference_chains, notSkyline);
 			
 			/////
 			//destroy Point pointers
@@ -211,47 +204,38 @@ void dySky_v::compute_views(Config* cfg, vector<vector<Order>> preference_orders
 	}
 }
 
-void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<Order>> preference_orders, bool* notSkyline){
+void dySky_v_chains::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, vector<vector<chain>> preference_chains, bool* notSkyline){
 	
-	//#pragma omp parallel for schedule(dynamic) if (niveau==1) 
-	for(int s=0;s<preference_orders[niveau].size();s++){
-		int best_value=preference_orders[niveau][s].first;
-		int worst_value=preference_orders[niveau][s].second;
+	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<94) 
+	for(int s=0;s<preference_chains[niveau].size();s++){
+		auto chain=preference_chains[niveau][s];
+		// int best_value=preference_orders[niveau][s].first;
+		// int worst_value=preference_orders[niveau][s].second;
 		// cout <<"niveau: "<<niveau<< " --> "<< best_value<<" : "<<worst_value<<endl;		
 
 
 		//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		//if we are not processing last dimension			
 		if (niveau<cfg->dyDim_size -1){
+
+			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
-			
-			if (best_value!=worst_value){
-				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-				// partition data wrt worst and best value in dimension niveau
-				for (int i=0; i<dataset.size(); i++){
-					if (dataset[i][cfg->statDim_size+1+niveau]==best_value && !notSkyline[dataset[i][0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=0;
-						branch_dataset.push_back(p);
-					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=1;
-						branch_dataset.push_back(p);
-					}
-				}
-			}else{
-				for (auto tuple : dataset){
-					if(tuple[1+cfg->statDim_size+niveau]==best_value && !notSkyline[tuple[0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						branch_dataset.push_back(p);
+			for (int j=0; j<dataset.size(); ++j){
+				if (!notSkyline[dataset[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1+niveau]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}
 
-			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, preference_orders, notSkyline);
+			this->compute_view_recursively_md(cfg,  niveau+1, branch_dataset, preference_chains, notSkyline);
 			/////
 			//destroy Point pointers
 			for ( auto p : branch_dataset)
@@ -262,29 +246,19 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 		//if we are processing last dimension
 		if (niveau==cfg->dyDim_size-1){
 
+			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+			// partitionner les donnees par rapport aux valeurs best_value, worst_value
 			vector<Point> branch_dataset;
-			if (best_value!=worst_value){
-				//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-				// partitionner les donnees par rapport à cette dimension
-				for (int i=0; i<dataset.size(); i++){
-					if (dataset[i][cfg->statDim_size+1+niveau]==best_value && !notSkyline[dataset[i][0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=0;
-						branch_dataset.push_back(p);
-					}else if (dataset[i][cfg->statDim_size+1+niveau]==worst_value && !notSkyline[dataset[i][0]]){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, dataset[i], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						p[cfg->statDim_size+1+niveau]=1;
-						branch_dataset.push_back(p);
-					}
-				}
-			}else{
-				for (auto tuple : dataset){
-					if(tuple[1+cfg->statDim_size+niveau]==best_value){
-						Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
-						memcpy(p, tuple, (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
-						branch_dataset.push_back(p);
+			for (int j=0; j<dataset.size(); ++j){
+				if (!notSkyline[dataset[j][0]]){
+					for (int rank=0; rank<chain.size(); rank++ ){
+						if (dataset[j][cfg->statDim_size+1+niveau]==chain[rank]){
+							Point p=(int*)malloc((cfg->statDim_size+cfg->dyDim_size+1)*sizeof(int));
+							memcpy(p, dataset[j], (cfg->statDim_size+cfg->dyDim_size+1) * sizeof(int));
+							p[cfg->statDim_size+1+niveau]=rank;
+							branch_dataset.push_back(p);
+							break;
+						}
 					}
 				}
 			}
@@ -296,7 +270,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 				int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 				vector<Space> full_Space;
 				listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-				//sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+				// sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
 				ExecuteBSkyTree_bis(full_Space, branch_dataset, notSkyline);
 			}
 
@@ -316,6 +290,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 		 //  	for (auto id: notSky) {
 		 //  		notSkyline[id]=true;
 		 //  	}
+
 			/////
 			//destroy Point pointers
 			for ( auto p : branch_dataset)
@@ -330,7 +305,7 @@ void dySky_v::compute_view_recursively_md(Config* cfg, int niveau, vector<Point>
 
 
 
-vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preference_orders){
+vector<id> dySky_v_chains::compute_skyline(Config* cfg, vector<vector<chain>> preference_chains){
 	cout << "dySky::compute_skyline" <<endl;
 
 	bool* notSkyline=new bool[cfg->dataset_size];
@@ -338,7 +313,7 @@ vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preferenc
 		notSkyline[i]=false;
 	}
 
-	this->compute_views(cfg, preference_orders, notSkyline);
+	this->compute_views(cfg, preference_chains, notSkyline);
 
 	for (int id_tuple : this->never_sky) notSkyline[id_tuple]=true;			
 
@@ -354,6 +329,11 @@ vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preferenc
 	}
 	delete[] notSkyline;
 	skyline_result.resize(index);
+
+ // 	cout << "print ids of skyline result" <<endl; 
+	// for (auto tuple : skyline_result){
+	// 	cout << tuple << endl;
+	// }
 
 	return skyline_result;
 }
@@ -404,7 +384,7 @@ vector<id> dySky_v::compute_skyline(Config* cfg, vector<vector<Order>> preferenc
 // 	}
 // }
 
-bool check_dominance(Config* cfg, Point tuple_dominated, Point tuple_dominating, int dim){
+bool dySky_v_chains::check_dominance(Config* cfg, Point tuple_dominated, Point tuple_dominating, int dim){
 	if (tuple_dominating[dim]>tuple_dominated[dim]){
 		return false;
 	}
@@ -414,11 +394,11 @@ bool check_dominance(Config* cfg, Point tuple_dominated, Point tuple_dominating,
 	return check_dominance(cfg, tuple_dominated, tuple_dominating, dim+1);
 }
 
-void dySky_v::find_dominated(Config* cfg, vector<Point> &dominating, vector<Point> &dominated, vector<id> &notSky){
+void dySky_v_chains::find_dominated(Config* cfg, vector<Point> &dominating, vector<Point> &dominated, vector<id> &notSky){
 
 	for (auto tuple1: dominated){
 		for (auto tuple2: dominating){
-			if (check_dominance(cfg, tuple1, tuple2, 1)){
+			if (this->check_dominance(cfg, tuple1, tuple2, 1)){
 				notSky.push_back(tuple1[0]);
 				break;
 			}

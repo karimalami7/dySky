@@ -10,7 +10,8 @@ class Query {
 public:
 
 	vector<Preference> preference; // for every dimension, we have a DAG
-	vector<vector<Order>> preference_orders; // for every dimension, we have a set of "Order"
+	vector<vector<Order>> preference_orders; // for every dimension, we have a set of "Order
+	vector<vector<chain>> preference_chains;
 	vector<vector<Order>> preference_orders_cross; // we cross orders between dimensions
 	
 	Query();
@@ -18,6 +19,7 @@ public:
 	void graph_to_orderPairs(Config* cfg);
 	void cross_orders_over_dimensions(Config* cfg);
 	void recur_cross(Config* cfg, vector<Order> v, int niv);
+	void print_query_caracteristics(Config* cfg);
 };
 Query::Query(){
 	
@@ -25,13 +27,26 @@ Query::Query(){
 Query::Query(Config* cfg){
 
 	preference= vector<Preference>(cfg->dyDim_size);
+	preference_chains= vector<vector<chain>>(cfg->dyDim_size);
 	
 	for (int i=0; i<cfg->dyDim_size; i++ ){
 		this->preference[i].generate_preference(cfg);
+		// cout <<"preference: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
+		this->preference[i].compute_transitive_reduction(this->preference[i]);
+		// cout <<"preference with transitive reduction: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
+		preference_chains[i]=this->preference[i].paths(cfg);
+		this->preference[i].compute_transitive_closure(this->preference[i]);
+		// cout <<"preference with transitive closure: "<<endl;
+		// this->preference[i].print_edges();
+		// cout << endl;
 	}
 	this->graph_to_orderPairs(cfg);
 	this->cross_orders_over_dimensions(cfg);
-
+	this->print_query_caracteristics(cfg);
 }
 
 void Query::graph_to_orderPairs(Config* cfg){
@@ -59,13 +74,6 @@ void Query::graph_to_orderPairs(Config* cfg){
 		}	
 	}
 
-	// print number of sequences
-	int num_seq=1;
-	for (int i=0; i<cfg->dyDim_size; i++){
-		cout << "number of orders: "<< this->preference_orders[i].size()<<endl;
-		num_seq*=this->preference_orders[i].size();
-	}
-	cerr << "number of sequences of this query: "<< num_seq<<endl;
 
 }
 
@@ -103,3 +111,20 @@ void Query::cross_orders_over_dimensions(Config* cfg){
 
 }
 
+void Query::print_query_caracteristics(Config* cfg){
+	// print number of sequences
+	int num_seq=1;
+	for (int i=0; i<cfg->dyDim_size; i++){
+		cerr << "number of orders: "<< this->preference_orders[i].size()<<endl;
+		num_seq*=this->preference_orders[i].size();
+	}
+	cerr << "number of sequences of this query: "<< num_seq<<endl;
+
+	// print number of sequences
+	int num_paths=1;
+	for (int i=0; i<cfg->dyDim_size; i++){
+		cerr << "number of paths: "<< this->preference_chains[i].size()<<endl;
+		num_paths*=this->preference_chains[i].size();
+	}
+	cerr << "number of paths of this query: "<< num_paths<<endl;
+}

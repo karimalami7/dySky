@@ -14,6 +14,7 @@
 #include "dySky/dySky.h"
 #include "dySky/dySky_h.h"
 #include "dySky/dySky_v.h"
+#include "dySky/dySky_v_chains.h"
 #include "Ref/arg.h"
 #include "OST/tos.h"
 #include <omp.h>
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 	int c = 0;
 	opterr = 0;
 
-	while ((c = getopt(argc, argv, "n:s:k:d:m:q:")) != -1) {
+	while ((c = getopt(argc, argv, "n:s:k:d:m:q:r:")) != -1) {
 		switch (c) {
 		case 'n':
 			cfg->dataset_size = atoi(optarg);
@@ -71,6 +72,9 @@ int main(int argc, char** argv) {
 			break;
 		case 'q':
 			cfg->workload_size = atoi(optarg);
+			break;
+		case 'r':
+			cfg->distrib = optarg;
 			break;
 		default:
 			if (isprint(optopt))
@@ -94,6 +98,7 @@ int main(int argc, char** argv) {
     	false, //tos
     	false, //arg
     	false, //dysky_h
+    	true, //dysky_v_chains
     };
   	//////////////////////////////////////////////////////////////////////////////
   	// Preprocessing
@@ -110,7 +115,7 @@ int main(int argc, char** argv) {
 	// generate partial order data
 	dysky_m.generate_po_data(cfg);
 	//
-	//dysky_m.print_dataset(cfg);
+	dysky_m.print_dataset(cfg);
 	//
 	//********************************************
 	// generate workload
@@ -118,12 +123,18 @@ int main(int argc, char** argv) {
 	vector<Query> workload(cfg->workload_size);
 	for (int i=0; i<cfg->workload_size; i++){
 		cerr << "compteur query: "<<i<<endl;
+		cout << "compteur query: "<<i<<endl;
 		Query q(cfg);
-		q.preference[i].find_heads(cfg);
 		workload[i]=q;
 	}
 	vector<Query> workload2(1000);
 	//********************************
+
+	//**********************************
+	// recursive parallelization
+	omp_set_nested(cfg->dyDim_size); 
+	// 
+
 	cfg->to_dataset=dysky_m.to_dataset;
 	cfg->po_dataset=dysky_m.po_dataset;
 	//
@@ -223,7 +234,7 @@ int main(int argc, char** argv) {
   	// skyline query answering
   	//
 
-	string const nomFichier1("logs/performance-"+to_string(cfg->dataset_size)+"-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dyDim_size)+"-"+to_string(cfg->dyDim_val));
+	string const nomFichier1("logs/performance-"+to_string(cfg->dataset_size)+"-"+cfg->distrib+"-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dyDim_size)+"-"+to_string(cfg->dyDim_val));
     ofstream monFlux1(nomFichier1.c_str());
 
   	// cerr << "---QUERY ANSWERING---"<<endl<<endl;
@@ -242,10 +253,11 @@ int main(int argc, char** argv) {
 
 	if (selectedMethod[0]) monFlux1 << "dysky_m"<< " : ";
 	if (selectedMethod[1]) monFlux1 << "dysky_v"<< " : ";
+	if (selectedMethod[5]) monFlux1 << "dysky_h"<< " : ";
+	if (selectedMethod[6]) monFlux1 << "dysky_v_chains"<< " : ";
 	if (selectedMethod[2]) monFlux1 << "cps"<< " : ";
 	if (selectedMethod[3]) monFlux1 << "tos"<< " : ";
 	if (selectedMethod[4]) monFlux1 << "arg"<< " : ";
-	if (selectedMethod[5]) monFlux1 << "dysky_h"<< " : ";
 
 	map<string, double> processing_time;
 	processing_time["dysky_m"]=0;
@@ -254,6 +266,7 @@ int main(int argc, char** argv) {
 	processing_time["tos"]=0;
 	processing_time["arg"]=0;
 	processing_time["dysky_h"]=0;
+	processing_time["dysky_v_chains"]=0;
 
 	monFlux1 << endl;
 	//*****************************************************************************************
@@ -282,7 +295,7 @@ int main(int argc, char** argv) {
 		// dySky_m: skyline query answering by dySky using materialized views
 		if(selectedMethod[0]==true){
 			cerr << "=====dySky: materialized views=====" <<endl;
-			//cout << "=====dySky: materialized views=====" <<endl;
+			cout << "=====dySky: materialized views=====" <<endl;
 			start_time=omp_get_wtime();
 			results["dysky_m"]=dysky_m.compute_skyline(cfg, workload[q].preference_orders_cross).size();
 			processing_time["dysky_m"]=processing_time["dysky_m"]+(omp_get_wtime()-start_time);
@@ -293,10 +306,30 @@ int main(int argc, char** argv) {
 		cerr <<endl;
 
 		// dySky_v: skyline query answering by dySky using virtual views
+		if(selectedMethod[6]==true){
+			cerr << "=====dySky: on the fly with chains=====" <<endl;
+			cout << "=====dySky: on the fly with chains=====" <<endl;
+			dySky_v_chains dysky_v_chains(cfg);
+			dysky_v_chains.to_dataset=dysky_m.to_dataset;
+			dysky_v_chains.po_dataset=dysky_m.po_dataset;
+			start_time=omp_get_wtime();
+			start_time2=omp_get_wtime();			
+			dysky_v_chains.compute_candidates(cfg);
+			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
+			start_time2=omp_get_wtime();
+			results["dySky_v_chains"]=dysky_v_chains.compute_skyline(cfg, workload[q].preference_chains).size();
+			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
+			processing_time["dySky_v_chains"]=processing_time["dySky_v_chains"]+(omp_get_wtime()-start_time);
+			cerr << "--> Result size: "<< results["dySky_v_chains"]<<endl;
+			cerr << "--> Time: "<< processing_time["dySky_v_chains"] << endl;
+		}
+		
+		// dySky_v: skyline query answering by dySky using virtual views
 		if(selectedMethod[1]==true){
-			cerr << "=====dySky: virtual views=====" <<endl;
-			cout << "=====dySky: virtual views=====" <<endl;
+			cerr << "=====dySky: on the fly with orders=====" <<endl;
+			cout << "=====dySky: on the fly with orders=====" <<endl;
 			dySky_v dysky_v(cfg);
+			//dySky_v_chains dysky_v(cfg);
 			dysky_v.to_dataset=dysky_m.to_dataset;
 			dysky_v.po_dataset=dysky_m.po_dataset;
 			start_time=omp_get_wtime();
@@ -304,19 +337,13 @@ int main(int argc, char** argv) {
 			dysky_v.compute_candidates(cfg);
 			cerr<<"--> Time for compute_candidates: "<< omp_get_wtime()-start_time2 << endl;		
 			start_time2=omp_get_wtime();
-			storage=0;
-			dysky_v.compute_views(cfg, workload[q].preference_orders, &storage);
-			cerr<<"--> Time for compute_views: "<< omp_get_wtime()-start_time2 << endl;		
-			start_time2=omp_get_wtime();
-			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders_cross).size();
+			results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_orders).size();
+			//results["dysky_v"]=dysky_v.compute_skyline(cfg, workload[q].preference_chains).size();
 			cerr<<"--> Time for compute_skyline: "<< omp_get_wtime()-start_time2 << endl;
-			cerr<<"--> Time for computing query: "<< omp_get_wtime()-start_time << endl;
 			processing_time["dysky_v"]=processing_time["dysky_v"]+(omp_get_wtime()-start_time);
 			cerr << "--> Result size: "<< results["dysky_v"]<<endl;
 			cerr << "--> Time: "<< processing_time["dysky_v"] << endl;
 		}
-
-		
 
 	  	// skyline query answering by CPS
 	  	if(selectedMethod[2]==true){
@@ -371,8 +398,8 @@ int main(int argc, char** argv) {
 
 		// dysky_h: skyline query answering by dySky using partially materialized views
 		if(selectedMethod[5]==true){
-			cerr << "=====dySky: partially materialized views=====" <<endl;
-			cout << "=====dySky: partially materialized views=====" <<endl;
+			cerr << "=====dySky: hybrid=====" <<endl;
+			cout << "=====dySky: hybrid=====" <<endl;
 			start_time=omp_get_wtime();
 			// compute hybrid skyline
 			results["dysky_h"]=dysky_h.hybrid_compute_skyline(cfg, workload[q].preference_orders_cross).size();
@@ -405,6 +432,7 @@ int main(int argc, char** argv) {
 			if (selectedMethod[3]) cout << "tos: "<< results["tos"]<<endl;
 			if (selectedMethod[4]) cout << "arg: "<< results["arg"]<<endl;
 			if (selectedMethod[5]) cout << "dysky_h: "<< results["dysky_h"]<<endl;
+			if (selectedMethod[6]) cout << "dysky_v_chains: "<< results["dySky_v_chains"]<<endl;
 		}
 		else {
 			cout <<"same results"<<endl;
@@ -415,10 +443,11 @@ int main(int argc, char** argv) {
 
 	if (selectedMethod[0]) monFlux1 << processing_time["dysky_m"]/cfg->workload_size<< " : ";
 	if (selectedMethod[1]) monFlux1 << processing_time["dysky_v"]/cfg->workload_size<< " : ";
+	if (selectedMethod[5]) monFlux1 << processing_time["dysky_h"]/cfg->workload_size<< " : ";
+	if (selectedMethod[6]) monFlux1 << processing_time["dySky_v_chains"]/cfg->workload_size<< " : ";
 	if (selectedMethod[2]) monFlux1 << processing_time["cps"]/cfg->workload_size<< " : ";
 	if (selectedMethod[3]) monFlux1 << processing_time["tos"]/cfg->workload_size<< " : ";
 	if (selectedMethod[4]) monFlux1 << processing_time["arg"]/cfg->workload_size<< " : ";
-	if (selectedMethod[5]) monFlux1 << processing_time["dysky_h"]/cfg->workload_size<< " : ";
 
 	monFlux1 << endl;
 }

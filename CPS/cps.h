@@ -276,7 +276,7 @@ int Cps::compute_skyline_perDimension(Config *cfg, int index_dim){
 		}
 		temp_dataset[i]=p;
 	}
-	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+	this->skyline_result=subspaceSkylineSize_TREE(cfg, full_Space, temp_dataset);
     ////cout << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
    	cerr << "Skyline size pour dimension : "<< index_dim<< " is "<<this->skyline_result.size()<<endl;
 }
@@ -325,7 +325,7 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 	}
 
 
-   	this->skyline_result=subspaceSkylineSize_TREE(full_Space, temp_dataset);
+   	this->skyline_result=subspaceSkylineSize_TREE(cfg, full_Space, temp_dataset);
 
 	//**************************
 	//destroy Point pointers
@@ -335,12 +335,13 @@ int Cps::compute_skyline(Config *cfg, bool own_data){
 
     ////cout << "Skyline size: "<<this->skyline_result.size()<<endl;
 
+	sort(this->skyline_result.begin(),this->skyline_result.end());
+
  // 	cout << "print ids of skyline result" <<endl; 
 	// for (auto tuple : skyline_result){
 	// 	cout << tuple << endl;
 	// }
-   	sort(this->skyline_result.begin(),this->skyline_result.end());
-
+   	
     return this->skyline_result.size();
 }
 

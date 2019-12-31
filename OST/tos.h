@@ -100,7 +100,7 @@ void Tos::compute_views(Config *cfg, uint64_t *storage){
 			if (!(sysinfo(&sys_info) == -1)) {
 				info_ram=sys_info.totalram - sys_info.freeram;
 				info_ram = (info_ram * sys_info.mem_unit)/1024;
-				printf("memory %d\n", info_ram);
+				//printf("memory %d\n", info_ram);
 			}
 			//************************************
 

@@ -61,18 +61,18 @@ int ComputeDistance(vector<int>& AttList, Point CPoint);
 
 bool EvaluatePoint(vector<int>& AttList, int nCPos, vector<Point>& PointList);
 
-void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList);
+void SelectPivotPoint(vector<int>& AttList, vector<Point>& PointList, bool* notSkyline);
 
-void MapPointToRegion(vector<int>& AttList, vector<Point>& PointList, map<int, vector<Point> >& PointMap, SNode& SkyTree);
+void MapPointToRegion(vector<int>& AttList, vector<Point>& PointList, map<int, vector<Point> >& PointMap, SNode& SkyTree, bool* notSkyline);
 
 
 bool FilterPoint(Point& CPoint, vector<int>& AttList, SNode& SkyNode);
 
 
-void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList, SNode& SkyTree);
+void PartialDominance(vector<int>& AttList, int nBase, vector<Point>& PointList, SNode& SkyTree, bool* notSkyline);
 
 
-void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& SkyTree);
+void ComputeSubBSkyTree(vector<int>& AttList, vector<Point>& PointList, SNode& SkyTree, bool* notSkyline);
 
 
 void InsertSkyline(vector<int>& SkylineList, SNode& SkyNode);
@@ -84,8 +84,12 @@ void PushStack(stack<SNode>& Stack, SNode& SkyNode);
 void ClearSkyTree(SNode& SkyTree);
 
 
-void ExecuteBSkyTree(vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline);
+void ExecuteBSkyTree(Config *cfg, vector<int>& AttList, vector<Point>& PointList, vector<int>& skyline);
 
-vector<int> subspaceSkylineSize_TREE(vector<int>& AttList, vector<Point>& PointList);
+
+void ExecuteBSkyTree_bis(vector<int>& AttList, vector<Point>& PointList, bool* notSkyline);
+
+
+vector<int> subspaceSkylineSize_TREE(Config *cfg, vector<int>& AttList, vector<Point>& PointList);
 
 #endif // BSKYTREE_H_INCLUDED

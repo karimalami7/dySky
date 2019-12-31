@@ -17,23 +17,29 @@
 
 for t in 96
 do
-
-for dataset_size in 100000
-do
-	for statDim in 6
+	for dataset_size in 100000 1000000
 	do
-		for dyDim in 1
+		k=$(($dataset_size/100))
+		for distrib in "INDE" 
 		do
-			for value in 10
+			for statDim in 6
 			do
-				echo "-n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 2"
-				OMP_NUM_THREADS=$t ./exec_dySky -n $dataset_size -s $statDim -k 100 -d $dyDim -m $value -q 1 #> cout 2> cerr
-				# mv cout ./logs/cout-$dataset_size-$statDim-$dyDim-$value
-				# mv cerr ./logs/cerr-$dataset_size-$statDim-$dyDim-$value
+				for dyDim in 2 3
+				do
+					for value in 10 15 20
+					do
+						for queries in 3
+						do
+							echo "-n $dataset_size -r $distrib -s $statDim -k $k -d $dyDim -m $value -q $queries"
+							OMP_NUM_THREADS=$t ./exec_dySky -r $distrib -n $dataset_size -s $statDim -k $k -d $dyDim -m $value -q $queries > cout 2> cerr
+							mv cout ./logs/cout-$dataset_size-$distrib-$statDim-$dyDim-$value
+							mv cerr ./logs/cerr-$dataset_size-$distrib-$statDim-$dyDim-$value
+						done
+					done
+				done
 			done
 		done
 	done
-done
 done
 
 

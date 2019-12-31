@@ -26,9 +26,14 @@ class Graph
 	void print_vertices();
 	void print_edges();
 	void compute_transitive_closure(Graph<T> p);
+	void compute_transitive_reduction(Graph<T> &G);
 	void greedyColoring(); 
 	bool is_subgraph(Graph<T> p); 
+	bool is_DAG(Order new_edge, int* number_edges);
 	bool is_DAG(Order new_edge);
+	void aux_reachable(T value, set<T> &reachable_values);
+	void reachable(T value, set<T> &reachable_values);
+	int number_edges();
 
 };
 
@@ -99,6 +104,16 @@ void Graph<T>::print_edges(){
 	//cout << endl;
 }
 
+template <typename T>
+int Graph<T>::number_edges(){
+	//cout <<"edges: "<<endl;
+	int number_edges=0;
+	for (auto it=this->out_edges.begin(); it!=this->out_edges.end(); it++){
+		number_edges+=it->second.size();
+	}
+	return number_edges;
+}
+
 void recursive_add(unordered_map<int,unordered_set<int> > &preference_in, id v_src, unordered_set<int> &vertices_dest){
 	
 	for (auto it=preference_in[v_src].begin();it!=preference_in[v_src].end();it++){
@@ -120,6 +135,50 @@ void Graph<T>::compute_transitive_closure(Graph<T> p){
 		unordered_set<int> vertices_dest;
 		recursive_add(p.out_edges,it->first,vertices_dest);
 		this->set_outedges(it->first,vertices_dest);
+	}
+}
+
+template <typename T>
+void Graph<T>::aux_reachable(T value, set<T> &reachable_values){
+	if (this->out_edges.find(value)!=this->out_edges.end()){
+		for (auto val: out_edges[value]){
+			reachable_values.insert(val);
+			aux_reachable(val, reachable_values);	
+		}
+	}
+}
+
+template <typename T>
+void Graph<T>::reachable(T value, set<T> &reachable_values){
+	for (auto e: out_edges[value]){
+		aux_reachable(e,reachable_values);
+	}
+}
+
+template <typename T>
+void Graph<T>::compute_transitive_reduction(Graph<T> &G){
+
+	for (auto it=G.out_edges.begin();it!=G.out_edges.end();it++){
+		//cout <<"vertex: "<< it->first<<endl;
+		set<T> reachable_values;
+		reachable(it->first, reachable_values); 
+		//cout <<"reachable_values: "<<endl;
+		// for (auto elm: reachable_values) cout << elm << " ";
+		// cout <<endl;
+		//cout <<"out_edges: "<<endl;
+		// for (auto elm: it->second) cout << elm << " ";
+		// cout <<endl;
+		auto it2=it->second.begin();
+		while(it2!=it->second.end()){
+			if (reachable_values.find(*it2)!=reachable_values.end()){
+				//delete it2
+				//cout <<"delete "<<*it2<<endl;
+				it2=it->second.erase(it2);
+			}
+			else{
+				it2++;
+			}
+		}
 	}
 }
 
@@ -206,6 +265,29 @@ bool Graph<T>::is_subgraph(Graph<T> p)
 		}
 	}
 	return true;
+}
+
+template <typename T>
+bool Graph<T>::is_DAG(Order new_edge, int* number_edges){
+
+	Graph<T> p_trans;
+	p_trans.compute_transitive_closure(*this);
+
+	// detect cycle
+	bool cycle_exists=false;
+
+	auto it_src=p_trans.out_edges.find(new_edge.second);
+	if (it_src!=p_trans.out_edges.end()){
+		auto it_dest=it_src->second.find(new_edge.first);
+		if(it_dest!=it_src->second.end()){
+			cycle_exists=true;
+		}
+	}
+
+	*number_edges=p_trans.number_edges();
+
+	return !cycle_exists;
+
 }
 
 template <typename T>

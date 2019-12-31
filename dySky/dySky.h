@@ -45,7 +45,7 @@ dySky::dySky(Config *cfg){
 }
 
 void dySky::generate_to_data(Config* cfg){
-	loadData("ANTI","",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
+	loadData(cfg->distrib,"",cfg->dataset_size, cfg->statDim_size, cfg->statDim_val, this->to_dataset);
 
 	
 } 
@@ -61,7 +61,7 @@ void dySky::generate_po_data(Config* cfg){
 
 void dySky::print_dataset (Config* cfg){
 
-    string const nomFichier1("INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
+    string const nomFichier1("datasets/INDE-"+to_string(cfg->statDim_size)+"-"+to_string(cfg->dataset_size)+".csv");
     ofstream monFlux1(nomFichier1.c_str());
 
     for (int i = 0; i < cfg->dataset_size ; i++)
@@ -106,7 +106,7 @@ int dySky::compute_candidates(Config* cfg){
 	listeAttributsPresents(All, cfg->statDim_size, full_Space);
     for (auto it_partition=partitions.begin(); it_partition!=partitions.end(); it_partition++){
     	vector<id> Skyline;
-    	Skyline=subspaceSkylineSize_TREE(full_Space, it_partition->second);
+    	Skyline=subspaceSkylineSize_TREE(cfg, full_Space, it_partition->second);
     	this->candidates.insert(this->candidates.end(),
     		Skyline.begin(), Skyline.end());
     }
@@ -161,7 +161,7 @@ void dySky::compute_view_1d(Config* cfg, vector<Point> &dataset, unordered_map<O
 		int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 		vector<Space> full_Space;
 		listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-		vector<id> sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+		vector<id> sky=subspaceSkylineSize_TREE(cfg, full_Space, branch_dataset);
 
 	  	//******************************************
 	  	// sort ids
@@ -262,7 +262,7 @@ void dySky::compute_views(Config* cfg, vector<vector<Order>> preference_orders, 
 
 void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &dataset, unordered_map<Order, order_tree*, pairhash> &sky_view, vector<vector<Order>> preference_orders, uint64_t *storage){
 	
-	#pragma omp parallel for schedule(dynamic) //if (niveau==1)
+	#pragma omp parallel for schedule(dynamic) if (omp_get_num_threads()<95 && niveau==1) 
 	for(int s=0;s<preference_orders[niveau].size();s++){
 		int best_value=preference_orders[niveau][s].first;
 		int worst_value=preference_orders[niveau][s].second;
@@ -350,7 +350,7 @@ void dySky::compute_view_recursively_md(Config* cfg, int niveau, vector<Point> &
 				int All = (1<<(cfg->statDim_size+cfg->dyDim_size))-1;
 				vector<Space> full_Space;
 				listeAttributsPresents(All, cfg->statDim_size+cfg->dyDim_size, full_Space);
-				sky=subspaceSkylineSize_TREE(full_Space, branch_dataset);
+				sky=subspaceSkylineSize_TREE(cfg, full_Space, branch_dataset);
 			}
 
 			sort(sky.begin(),sky.end());
@@ -399,6 +399,7 @@ vector<id> dySky::compute_skyline(Config* cfg, vector<vector<Order>> preference_
 	bool* cSkyline=new bool[cfg->dataset_size];
 	for (int i=0;i<cfg->dataset_size;i++) cSkyline[i]=true;
 
+	#pragma omp parallel for
 	for (int i=0;i<preference_cross.size();i++){ // loop on orders
 		order_tree *ot=sky_view[preference_cross[i][0]];
 		//cout << "niv: 0 " <<preference_cross[i][0].first<< ":"<< preference_cross[i][0].second <<endl;

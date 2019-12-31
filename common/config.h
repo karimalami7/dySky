@@ -22,6 +22,7 @@ typedef struct Config {
 	bool verbose;
 	vector<int*> to_dataset;
 	vector<vector<int>> po_dataset;
+	char * distrib;
 } Config;
 
 
